@@ -30,7 +30,7 @@ func requireStack(t *testing.T) {
 	}
 
 	if _, err := ScanHost(t.Context(), testHost, testPort); err != nil {
-		t.Skipf("test yığını çalışmıyor (make docker-up): %v", err)
+		t.Skipf("test container'ları çalışmıyor (make docker-up): %v", err)
 	}
 }
 

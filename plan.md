@@ -37,7 +37,7 @@ yada/
 │   └── yada-gui/        # Fyne giriş noktası
 ├── internal/
 │   ├── config/                 # yada.conf yükleme, arama sırası, doğrulama
-│   ├── transport/              # sistem ssh sarmalayıcı, komut çalıştırma
+│   ├── transport/              # sistem ssh istemcisini çalıştırır, komut gönderir
 │   ├── records/                # RR modeli, ayrıştırma, serileştirme, doğrulama
 │   ├── unbound/                # checkconf, üç kademeli yenileme, dosya yazma
 │   ├── diff/                   # sunucular arası karşılaştırma ve eşitleme
@@ -132,7 +132,7 @@ Kurallar:
 - Çıkış kodu her çağrıda okunur ve döndürülür. Sıfırdan farklı kod hata sayılır ve `stderr` içeriğiyle birlikte yüzeye çıkar, sessizce yutulmaz.
 - `ssh` binary'si `PATH`'te bulunamazsa kullanıcıya platforma özel kurulum yönlendirmesi verilir. Windows'ta OpenSSH istemcisi 1809 ve sonrası ile birlikte gelir, kapalıysa isteğe bağlı özelliklerden açılır.
 - Bağlantı testi `ssh -o BatchMode=yes -o ConnectTimeout=<n> <user>@<host> "echo ok"` ile yapılır. `BatchMode` sayesinde parola isteyen sunucu beklemeye girmez, ulaşılamaz sayılır.
-- `context.Context` iptal edildiğinde alt süreç öldürülür, GUI'da "İptal" düğmesi bunu kullanır.
+- `context.Context` iptal edildiğinde `ssh` process'i öldürülür, GUI'da "İptal" düğmesi bunu kullanır.
 
 ### 5.1 Enjeksiyon önlemi
 
@@ -317,7 +317,7 @@ Karşılaştırma normalize edilmiş kayıt üzerinden yapılır: ad küçük ha
 - **Birim testleri.** Ayrıştırma ve serileştirme (round-trip: ayrıştır, geri yaz, özgün dosyayla karşılaştır), tip doğrulama, alan adı doğrulama, CSV ayrıştırma, fark hesaplama, ayar arama sırası.
 - **Altın dosya testleri.** `testdata/` altındaki örnek `local_records.conf` dosyaları üzerinde ekleme ve silme sonucu beklenen çıktıyla karşılaştırılır.
 - **Entegrasyon testleri.** `PATH` başına sahte bir `ssh` betiği konur. Betik uzak komutu yerel kabukta çalıştırır, böylece kabuk alıntılama ve dosya yazma gerçekten sınanır. Senaryolar: `unbound-control` yok, `systemctl reload` desteklenmiyor, `checkconf` başarısız ve geri alma, kısmi sunucu başarısızlığı.
-- **Testler önbelleksiz çalışır.** Tüm test hedefleri `go test -count=1` kullanır.
+- **Testler `-count=1` ile çalışır**, yani cache'ten sonuç dönmez. Tüm test hedefleri bu bayrağı kullanır.
 
 Kapsam hedefi: `internal/records` ve `internal/config` için yüzde seksenin üzeri. GUI kodu için birim testi hedeflenmez, iş mantığı GUI dışında tutulduğu için gerek kalmaz.
 

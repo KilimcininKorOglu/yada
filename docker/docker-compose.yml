@@ -1,0 +1,52 @@
+# Three Unbound servers reachable over ssh, for exercising the CLI against
+# something real. Nothing here is deployed; it exists to be torn down.
+#
+# ns3 runs without a control channel on purpose. That is what proves the
+# refresh chain falls through to systemctl instead of only ever taking the
+# lightest tier on a perfectly configured host.
+#
+# Host ports come from the 8340-8349 block.
+
+x-server: &server
+  build:
+    context: .
+    dockerfile: Dockerfile
+  volumes:
+    - ./keys/id_test.pub:/keys/authorized_key.pub:ro
+  healthcheck:
+    test: ["CMD", "unbound-checkconf", "/etc/unbound/unbound.conf"]
+    interval: 5s
+    timeout: 5s
+    retries: 12
+    start_period: 5s
+
+services:
+  ns1:
+    <<: *server
+    container_name: unbound-ps-ns1
+    environment:
+      REMOTE_CONTROL: "yes"
+    ports:
+      - "127.0.0.1:8340:22"
+      - "127.0.0.1:8341:53/tcp"
+      - "127.0.0.1:8341:53/udp"
+
+  ns2:
+    <<: *server
+    container_name: unbound-ps-ns2
+    environment:
+      REMOTE_CONTROL: "yes"
+    ports:
+      - "127.0.0.1:8342:22"
+      - "127.0.0.1:8343:53/tcp"
+      - "127.0.0.1:8343:53/udp"
+
+  ns3:
+    <<: *server
+    container_name: unbound-ps-ns3
+    environment:
+      REMOTE_CONTROL: "no"
+    ports:
+      - "127.0.0.1:8344:22"
+      - "127.0.0.1:8345:53/tcp"
+      - "127.0.0.1:8345:53/udp"

@@ -171,6 +171,15 @@ make vuln        # govulncheck
 
 Testler önbelleksiz çalışır. Uzak işlemler, `PATH` başına konan sahte bir `ssh` betiği ile sınanır; betik uzak komutu yerel kabukta çalıştırdığı için kabuk alıntılama ve dosya yazma gerçekten test edilir.
 
+Bunun üstünde, SSH erişimli üç gerçek Unbound sunucusundan oluşan bir Docker ortamı vardır:
+
+```bash
+make docker-test     # ayağa kaldır ve uçtan uca senaryoyu çalıştır
+make docker-down
+```
+
+Doğrulamalar aracın çıktısına değil, resolver'ın verdiği yanıta bakar. Ayrıntılar için `docker/README.md`.
+
 ### Yapı
 
 ```

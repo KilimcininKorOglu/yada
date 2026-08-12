@@ -8,3 +8,6 @@ unbound-dns.conf
 
 # Fyne bundles a large binary; builds stay out of the repository.
 *.syso
+
+# Test fixture ssh keys, generated per machine and never committed.
+docker/keys/

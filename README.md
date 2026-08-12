@@ -48,7 +48,7 @@ Linux hedefleri çapraz derlenmez, konteyner içinde derlenir: glfw hedefin X11,
 
 ## Ön koşullar
 
-**Uygulamayı çalıştıran makinede:** `PATH` üzerinde bir `ssh` istemcisi. Windows 10 sürüm 1809 ve sonrası OpenSSH istemcisiyle gelir; kapalıysa Ayarlar > Uygulamalar > İsteğe bağlı özellikler bölümünden eklenir.
+**Uygulamayı çalıştıran makinede:** `PATH` üzerinde bir `ssh` istemcisi. Arayüzdeki sunucu ekleme formu ayrıca aynı pakette gelen `ssh-keygen` ve `ssh-keyscan` araçlarını kullanır. Windows 10 sürüm 1809 ve sonrası OpenSSH istemcisiyle gelir; kapalıysa Ayarlar > Uygulamalar > İsteğe bağlı özellikler bölümünden eklenir.
 
 Sistem `ssh` binary'si kullanılır, dolayısıyla `~/.ssh/config` dosyanız, ssh-agent ve `ProxyJump` gibi ayarlarınız olduğu gibi geçerlidir.
 
@@ -66,6 +66,27 @@ Kesintisiz yenileme kademeleri şunları ister:
 İlk kademe değişen kayıtları çalışan daemon'a doğrudan yazar; kalıcılık, önce yazılan kayıt dosyasından gelir. Yalnızca bir yazma işleminin ardından kullanılabilir, çünkü neyin değiştiğinin bilinmesi gerekir. Tek başına `yada reload` bunu bilemez ve bir alt kademeden başlar.
 
 Hangi kademenin kullanılabildiğini `yada check` gösterir.
+
+## İlk kurulum
+
+Yeni bir makinede en kolay yol masaüstü arayüzüdür. Argümansız çalıştırın, Sunucular sekmesinde **Sunucu ekle** düğmesine basın. Ayar dosyası hiç yoksa uygulama zaten açılışta bunu önerir.
+
+Form adres, kullanıcı ve private key ister. Karşılığında dört şey yazılır:
+
+1. Private key `~/.ssh/yada_<ad>` dosyasına, `0600` izinle
+2. Sunucunun host key'i `~/.ssh/known_hosts` dosyasına
+3. `~/.ssh/config` içine bir `Host` bloğu (`HostName`, `User`, `Port`, `IdentityFile`, `IdentitiesOnly`)
+4. Sunucu `yada.conf` içindeki `servers` listesine
+
+Host key yazılmadan önce parmak izi gösterilir ve onayınız istenir. Sunucunun yöneticisinden aldığınız parmak iziyle karşılaştırın. `known_hosts` dosyasında o adres için başka bir host key kayıtlıysa hiçbir şey yazılmaz: sunucu yeniden kurulduysa ilgili satırı elle silin, kurulmadıysa bağlantı beklediğiniz makineye gitmiyordur.
+
+Public key'in sunucudaki `authorized_keys` dosyasında zaten olması gerekir. Uygulama parola ile bağlanmaz, dolayısıyla anahtarı sunucuya kuramaz.
+
+Sunucular aynı anahtarı paylaşabilir. Yapıştırdığınız anahtar diskte zaten varsa ikinci bir kopya yazılmaz, mevcut dosya gösterilir.
+
+`~/.ssh/config` ve `known_hosts` yazılmadan önce `.bak` kopyası alınır. Uygulama yalnızca kendi işaretleri (`# >>> yada <adres>`) arasındaki bölümü değiştirir; elle yazdığınız bloklara dokunmaz. Aynı adres için elle yazılmış bir `Host` bloğu varsa yazma yapılmaz ve durum bildirilir.
+
+Windows'ta OpenSSH anahtar izinlerini ACL üzerinden denetler, `0600` orada aynı anlama gelmez. Uygulama anahtarı yazdıktan sonra çalıştırmanız gereken `icacls` komutunu gösterir.
 
 ## Ayar dosyası
 
@@ -227,8 +248,9 @@ Doğrulamalar aracın çıktısına değil, resolver'ın verdiği yanıta bakar.
 
 ```
 cmd/yada/       giriş noktası, arayüz ve CLI arasında seçim yapar
-internal/config/       ayar yükleme ve doğrulama
+internal/config/       ayar yükleme, doğrulama ve düzenleme
 internal/transport/    sistem ssh sarmalayıcı
+internal/sshsetup/     yerel anahtar, known_hosts ve ssh config yazma
 internal/records/      kayıt modeli, ayrıştırma, serileştirme
 internal/unbound/      okuma, yazma, doğrulama, yenileme
 internal/diff/         sunucular arası karşılaştırma

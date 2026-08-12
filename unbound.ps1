@@ -149,6 +149,37 @@ function Invoke-UnboundReload {
     }
 }
 
+function Invoke-UnboundServiceReload {
+    param($Server, $Username)
+
+    try {
+        Write-ColorOutput "[$Server] Servise reload sinyali gönderiliyor..." $Yellow
+        $output = ssh "$Username@$Server" "sudo systemctl reload unbound 2>&1"
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-ColorOutput "[$Server] systemctl reload kullanılamadı (çıkış kodu: $LASTEXITCODE)" $Yellow
+            foreach ($line in $output) {
+                Write-ColorOutput "[$Server]   $line" $Yellow
+            }
+            return $false
+        }
+
+        # SIGHUP sonrası config hatalıysa unbound kapanabilir, durumu doğrula
+        $serviceStatus = ssh "$Username@$Server" "sudo systemctl is-active unbound" 2>$null
+        if ($serviceStatus -ne "active") {
+            Write-ColorOutput "[$Server] ❌ Reload sonrası servis aktif değil: $serviceStatus" $Red
+            return $false
+        }
+
+        Write-ColorOutput "[$Server] ✅ Config yeniden yüklendi, cache temizlendi" $Green
+        return $true
+    }
+    catch {
+        Write-ColorOutput "[$Server] Reload sinyali gönderilirken hata: $($_.Exception.Message)" $Yellow
+        return $false
+    }
+}
+
 function Restart-UnboundService {
     param($Server, $Username)
 
@@ -310,8 +341,14 @@ if ($needsReload) {
                 continue
             }
 
-            # Önce kesintisiz yolu dene, olmazsa servisi yeniden başlat
+            # En hafif yoldan başla, her kademe başarısız olursa bir sonrakine geç
             $result = Invoke-UnboundReload -Server $server -Username $Username
+
+            if (-not $result) {
+                Write-ColorOutput "[$server] systemctl reload deneniyor" $Yellow
+                $result = Invoke-UnboundServiceReload -Server $server -Username $Username
+            }
+
             if (-not $result) {
                 Write-ColorOutput "[$server] Servisi yeniden başlatmaya geçiliyor" $Yellow
                 $result = Restart-UnboundService -Server $server -Username $Username

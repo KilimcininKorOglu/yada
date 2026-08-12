@@ -17,14 +17,14 @@ Bir veya birden fazla Unbound sunucusunda `local-zone` ve `local-data` kayıtlar
 Hazır binary yoksa kaynaktan derleyin. Go 1.24 veya üstü gerekir.
 
 ```bash
-make build-cli        # unbound-dns (saf Go, cgo yok)
-make build-gui        # unbound-dns-gui (Fyne, cgo gerekir)
-make cross-cli        # linux, macOS ve Windows için CLI
+make build            # unbound-dns (arayüz + CLI, cgo gerekir)
+make build-cli        # unbound-dns-cli (yalnızca CLI, statik)
+make cross-cli        # linux, macOS ve Windows için statik CLI
 ```
 
-CLI `CGO_ENABLED=0` ile derlenir, bu yüzden tek komutla beş platforma çapraz derlenir ve hedef makinede çalışma zamanı bağımlılığı aramaz.
+`make build` tek bir binary üretir: argümansız çalıştırıldığında masaüstü arayüzünü açar, `-cli` ile komut satırına geçer. Fyne kullandığı için cgo ister ve her platformda ayrı derlenir. Linux'ta derlemek için `libgl1-mesa-dev` ve `xorg-dev` paketleri gerekir.
 
-GUI, Fyne kullandığı için cgo ister ve her platformda ayrı derlenir. Linux'ta derlemek için `libgl1-mesa-dev` ve `xorg-dev` paketleri gerekir.
+`make build-cli`, `nogui` build tag'i ile arayüzü çıkarır. Geriye `CGO_ENABLED=0` ile derlenen statik bir binary kalır; tek komutla beş platforma çapraz derlenir ve hedef makinede çalışma zamanı bağımlılığı aramaz. Sunucular ve CI için olan yapı budur.
 
 ## Ön koşullar
 
@@ -36,11 +36,14 @@ Sistem `ssh` binary'si kullanılır, dolayısıyla `~/.ssh/config` dosyanız, ss
 
 Kesintisiz yenileme kademeleri şunları ister:
 
-| Kademe | Gereksinim |
-|---|---|
-| `unbound-control reload_keep_cache` | `unbound.conf` içinde `remote-control: control-enable: yes` ve `unbound-control-setup` ile üretilmiş sertifikalar |
-| `systemctl reload` | Unit dosyasında `ExecReload` tanımlı olmalı |
-| `systemctl restart` | Yok |
+| Kademe | Maliyet | Gereksinim |
+|---|---|---|
+| `unbound-control local_data` | Kesinti yok, config okunmaz, cache korunur | `remote-control: control-enable: yes` ve `unbound-control-setup` sertifikaları |
+| `unbound-control reload_keep_cache` | Kesinti yok, config yeniden okunur, cache korunur | Aynısı |
+| `systemctl reload` | Kesinti yok, cache temizlenir | Unit dosyasında `ExecReload` tanımlı olmalı |
+| `systemctl restart` | Kısa kesinti, cache temizlenir | Yok |
+
+İlk kademe değişen kayıtları çalışan daemon'a doğrudan yazar; kalıcılık, önce yazılan kayıt dosyasından gelir. Yalnızca bir yazma işleminin ardından kullanılabilir, çünkü neyin değiştiğinin bilinmesi gerekir. Tek başına `unbound-dns reload` bunu bilemez ve bir alt kademeden başlar.
 
 Hangi kademenin kullanılabildiğini `unbound-dns check` gösterir.
 
@@ -78,7 +81,19 @@ Tüm anahtarların açıklaması `internal/config/unbound-dns.conf.example` dosy
 
 ## Kullanım
 
+Argümansız çalıştırılınca masaüstü arayüzü açılır:
+
 ```bash
+unbound-dns                               # arayüz
+unbound-dns --config /yol/unbound-dns.conf  # arayüz, belirli bir ayar dosyasıyla
+```
+
+Komut satırı için `-cli` verin. Bir alt komut yazıldığında `-cli` gerekmez, çünkü alt komut zaten komut satırını seçer:
+
+```bash
+unbound-dns -cli check
+unbound-dns check                         # aynısı
+
 unbound-dns check                         # bağlantı ve config doğrulaması, değişiklik yapmaz
 unbound-dns list                          # kayıtları listele
 unbound-dns list --type A --filter google
@@ -104,8 +119,6 @@ unbound-dns reload                        # yalnızca yenile
 Genel bayraklar: `--config`, `--server` (tekrarlanabilir), `--json`, `--dry-run`, `--no-reload`, `--yes`.
 
 `--dry-run` hiçbir şey yazmaz, yalnızca oluşacak farkı gösterir.
-
-Masaüstü arayüzü için `unbound-dns-gui` çalıştırın.
 
 ### CSV biçimi
 
@@ -161,8 +174,7 @@ Testler önbelleksiz çalışır. Uzak işlemler, `PATH` başına konan sahte bi
 ### Yapı
 
 ```
-cmd/unbound-dns/       CLI
-cmd/unbound-dns-gui/   Fyne arayüzü
+cmd/unbound-dns/       giriş noktası, arayüz ve CLI arasında seçim yapar
 internal/config/       ayar yükleme ve doğrulama
 internal/transport/    sistem ssh sarmalayıcı
 internal/records/      kayıt modeli, ayrıştırma, serileştirme

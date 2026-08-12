@@ -1,3 +1,5 @@
+//go:build !nogui
+
 // Package ui builds the Fyne desktop interface. It holds no business logic of
 // its own: every operation goes through the same internal packages the CLI
 // uses, so the two cannot drift apart.
@@ -23,6 +25,10 @@ type App struct {
 	fyne   fyne.App
 	window fyne.Window
 
+	// configPath is set when the user named a file explicitly, in which case
+	// the search order is bypassed.
+	configPath string
+
 	mu     sync.RWMutex
 	cfg    config.Config
 	runner transport.Runner
@@ -34,9 +40,13 @@ type App struct {
 	cancel   context.CancelFunc
 }
 
-// Run builds the window and blocks until it closes.
-func Run(version string) {
-	a := &App{fyne: app.NewWithID("dev.kerem.unbound-dns")}
+// Run builds the window and blocks until it closes. An empty configPath leaves
+// the usual search order in place.
+func Run(version, configPath string) {
+	a := &App{
+		fyne:       app.NewWithID("dev.kerem.unbound-dns"),
+		configPath: configPath,
+	}
 
 	a.window = a.fyne.NewWindow("Unbound DNS Yöneticisi " + version)
 	a.window.Resize(fyne.NewSize(1100, 700))
@@ -51,7 +61,7 @@ func Run(version string) {
 // loadConfig reads the configuration. A failure is not fatal: the settings tab
 // has to stay reachable so the user can fix the file from inside the app.
 func (a *App) loadConfig() {
-	cfg, err := config.LoadDefault()
+	cfg, err := a.readConfig()
 	if err != nil {
 		a.log.addf("Ayar okunamadı: %v", err)
 		return
@@ -63,6 +73,16 @@ func (a *App) loadConfig() {
 	a.mu.Unlock()
 
 	a.log.addf("Ayar yüklendi: %s (%d sunucu)", cfg.SourcePath, len(cfg.Servers))
+}
+
+// readConfig honours an explicitly named file and otherwise falls back to the
+// search order.
+func (a *App) readConfig() (config.Config, error) {
+	if a.configPath != "" {
+		return config.Load(a.configPath)
+	}
+
+	return config.LoadDefault()
 }
 
 // config returns a snapshot of the current configuration.

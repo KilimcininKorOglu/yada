@@ -1,0 +1,12 @@
+name,type,value,ttl
+web.example.test,A,10.30.30.30,
+api.example.test,A,10.30.30.31,3600
+ipv6.example.test,AAAA,2001:db8::1,
+mail.example.test,AAAA,2001:db8::25,7200
+www.example.test,CNAME,web.example.test.,
+cdn.example.test,CNAME,web.example.test.,300
+example.test,MX,10 mail.example.test.,
+example.test,TXT,v=spf1 mx -all,
+_dmarc.example.test,TXT,v=DMARC1; p=quarantine; rua=mailto:dmarc@example.test,3600
+30.30.30.10.in-addr.arpa,PTR,web.example.test.,
+31.30.30.10.in-addr.arpa,PTR,api.example.test.,86400

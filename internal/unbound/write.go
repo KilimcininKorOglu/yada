@@ -235,12 +235,29 @@ func writeRemote(ctx context.Context, r transport.Runner, srv config.Server, con
 // Apply reads, modifies and writes the records file on every server. The
 // mutate callback receives each server's own parsed file, so a change is
 // applied to what that server actually has rather than to a shared copy.
+//
+// The callback may run concurrently for different servers, so it must not
+// write to state shared between them.
 func Apply(
 	ctx context.Context,
 	r transport.Runner,
 	cfg config.Config,
 	opts WriteOptions,
 	mutate func(*records.File) error,
+) []WriteResult {
+	return ApplyPerServer(ctx, r, cfg, opts, func(_ config.Server, f *records.File) error {
+		return mutate(f)
+	})
+}
+
+// ApplyPerServer is Apply with the server passed to the callback, for changes
+// that differ per server such as a sync plan.
+func ApplyPerServer(
+	ctx context.Context,
+	r transport.Runner,
+	cfg config.Config,
+	opts WriteOptions,
+	mutate func(config.Server, *records.File) error,
 ) []WriteResult {
 	return ForEachServer(ctx, cfg, func(ctx context.Context, srv config.Server) WriteResult {
 		file, err := ReadFile(ctx, r, srv)
@@ -250,7 +267,7 @@ func Apply(
 
 		before := file.Bytes()
 
-		if err := mutate(file); err != nil {
+		if err := mutate(srv, file); err != nil {
 			return WriteResult{Server: srv, Err: err}
 		}
 

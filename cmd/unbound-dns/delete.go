@@ -101,12 +101,11 @@ func runDelete(ctx context.Context, name, typeName, value string, prune bool) er
 		return nil
 	})
 
-	changed, err := reportDeleteResults(results, opts.DryRun)
-	if err != nil {
+	if err := reportDeleteResults(results, opts.DryRun); err != nil {
 		return err
 	}
 
-	return refreshChanged(ctx, runner, cfg, changed)
+	return refreshChanged(ctx, runner, cfg, results)
 }
 
 // previewDeletion lists the records that match, per server, and returns how
@@ -168,17 +167,14 @@ func filterMatches(found []records.Record, value string) []records.Record {
 	return out
 }
 
-func reportDeleteResults(results []unbound.WriteResult, dryRun bool) ([]config.Server, error) {
+func reportDeleteResults(results []unbound.WriteResult, dryRun bool) error {
 	if dryRun {
 		fmt.Println("\n(dry-run: hiçbir değişiklik yapılmadı)")
 	}
 
 	fmt.Println()
 
-	var (
-		failed  int
-		changed []config.Server
-	)
+	var failed int
 
 	for _, res := range results {
 		label := res.Server.Label()
@@ -203,20 +199,19 @@ func reportDeleteResults(results []unbound.WriteResult, dryRun bool) ([]config.S
 			fmt.Print(indentBlock(res.Diff.String()))
 
 		default:
-			changed = append(changed, res.Server)
 			fmt.Printf("[%s] silindi\n", label)
 			fmt.Print(indentBlock(res.Diff.String()))
 		}
 	}
 
 	if failed > 0 {
-		return changed, &exitCodeError{
+		return &exitCodeError{
 			code: exitCodeFor(failed, len(results)),
 			msg:  fmt.Sprintf("%d sunucuda işlem başarısız oldu", failed),
 		}
 	}
 
-	return changed, nil
+	return nil
 }
 
 func newUpdateCommand() *cobra.Command {
@@ -287,15 +282,14 @@ func runUpdate(ctx context.Context, name, typeName, value string, ttl *uint32) e
 		return f.Update(rec)
 	})
 
-	changed, err := reportUpdateResults(rec, results, opts.DryRun)
-	if err != nil {
+	if err := reportUpdateResults(rec, results, opts.DryRun); err != nil {
 		return err
 	}
 
-	return refreshChanged(ctx, runner, cfg, changed)
+	return refreshChanged(ctx, runner, cfg, results)
 }
 
-func reportUpdateResults(rec records.Record, results []unbound.WriteResult, dryRun bool) ([]config.Server, error) {
+func reportUpdateResults(rec records.Record, results []unbound.WriteResult, dryRun bool) error {
 	fmt.Printf("Yeni değer: %s\n", rec.String())
 
 	if dryRun {
@@ -304,10 +298,7 @@ func reportUpdateResults(rec records.Record, results []unbound.WriteResult, dryR
 
 	fmt.Println()
 
-	var (
-		failed  int
-		changed []config.Server
-	)
+	var failed int
 
 	for _, res := range results {
 		label := res.Server.Label()
@@ -338,18 +329,17 @@ func reportUpdateResults(rec records.Record, results []unbound.WriteResult, dryR
 			fmt.Print(indentBlock(res.Diff.String()))
 
 		default:
-			changed = append(changed, res.Server)
 			fmt.Printf("[%s] güncellendi\n", label)
 			fmt.Print(indentBlock(res.Diff.String()))
 		}
 	}
 
 	if failed > 0 {
-		return changed, &exitCodeError{
+		return &exitCodeError{
 			code: exitCodeFor(failed, len(results)),
 			msg:  fmt.Sprintf("%d sunucuda işlem başarısız oldu", failed),
 		}
 	}
 
-	return changed, nil
+	return nil
 }

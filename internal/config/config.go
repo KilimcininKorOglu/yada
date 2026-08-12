@@ -24,8 +24,13 @@ var Example []byte
 type ReloadStrategy string
 
 const (
-	// ReloadAuto tries reload_keep_cache, then systemctl reload, then restart.
+	// ReloadAuto tries the local_data push, then reload_keep_cache, then
+	// systemctl reload, then restart.
 	ReloadAuto ReloadStrategy = "auto"
+	// ReloadLocalData only pushes the changed records with unbound-control
+	// local_data. It needs no config re-read at all, but it can only run after
+	// a write this tool performed, because the change set has to be known.
+	ReloadLocalData ReloadStrategy = "local_data"
 	// ReloadControl only runs unbound-control reload_keep_cache.
 	ReloadControl ReloadStrategy = "control"
 	// ReloadSignal only runs systemctl reload, which delivers SIGHUP.

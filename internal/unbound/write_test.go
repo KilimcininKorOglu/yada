@@ -84,6 +84,30 @@ func TestWriteSucceeds(t *testing.T) {
 	}
 }
 
+// The write has to report which records moved, not only which lines, because
+// that is what lets the refresh push the change into the running daemon
+// instead of making it re-read the whole config.
+func TestWriteReportsRecordLevelChange(t *testing.T) {
+	r := writeRunner()
+	before, file := prepared(t, addRecord(t))
+
+	res := Write(context.Background(), r, testServer(), before, file, WriteOptions{Backup: true})
+
+	if res.Err != nil {
+		t.Fatalf("beklenmeyen hata: %v", res.Err)
+	}
+
+	if len(res.Change.Added) != 1 {
+		t.Fatalf("kayıt seviyesinde %d ekleme bildirildi, 1 olmalı: %+v", len(res.Change.Added), res.Change.Added)
+	}
+	if res.Change.Added[0].Name != "yeni.google.com." {
+		t.Errorf("eklenen kayıt = %q, yeni.google.com. olmalı", res.Change.Added[0].Name)
+	}
+	if len(res.Change.Removed) != 0 {
+		t.Errorf("silinen bildirildi: %+v", res.Change.Removed)
+	}
+}
+
 // The records must travel over stdin, never inside the command string, so the
 // remote shell never sees the quotes they contain.
 func TestWriteSendsContentOverStdinNotArguments(t *testing.T) {

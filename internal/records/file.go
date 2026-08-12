@@ -132,6 +132,27 @@ func parseZoneBody(body string) (name, zoneType string, ok bool) {
 	return NormalizeName(value), zoneType, true
 }
 
+// ParseWireLine reads a record in presentation format, as unbound-control
+// list_local_data prints it. Fields there are tab separated and carry no
+// surrounding quotes, unlike the body of a local-data line.
+//
+// A line that does not parse is reported as such rather than guessed at, so
+// blank lines and any future header text are skipped instead of becoming
+// bogus records.
+func ParseWireLine(line string) (Record, bool) {
+	line = strings.TrimSpace(line)
+	if line == "" || strings.HasPrefix(line, ";") {
+		return Record{}, false
+	}
+
+	rec, ok := parseDataBody(line)
+	if !ok || rec.Name == "" || rec.Type == "" || rec.Value == "" {
+		return Record{}, false
+	}
+
+	return rec, true
+}
+
 // parseDataBody reads `"mail.google.com. IN A 10.10.10.10"` into a record.
 func parseDataBody(body string) (Record, bool) {
 	value, _, ok := cutQuoted(body)

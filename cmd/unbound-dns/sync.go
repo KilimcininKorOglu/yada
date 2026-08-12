@@ -237,12 +237,12 @@ func runSync(ctx context.Context, from string, prune bool) error {
 		}
 	}
 
-	changed, err := applySync(ctx, runner, cfg, sourceServer, plans, prune)
+	writes, err := applySync(ctx, runner, cfg, sourceServer, plans, prune)
 	if err != nil {
 		return err
 	}
 
-	if err := refreshChanged(ctx, runner, cfg, changed); err != nil {
+	if err := refreshChanged(ctx, runner, cfg, writes); err != nil {
 		return err
 	}
 
@@ -319,7 +319,7 @@ func applySync(
 	source config.Server,
 	plans []diff.Plan,
 	prune bool,
-) ([]config.Server, error) {
+) ([]unbound.WriteResult, error) {
 	byServer := make(map[string]diff.Plan, len(plans))
 	for _, plan := range plans {
 		byServer[plan.Server] = plan
@@ -365,7 +365,7 @@ func applySync(
 
 	fmt.Println()
 
-	return reportBulkResults(results, opts.DryRun)
+	return results, reportBulkResults(results, opts.DryRun)
 }
 
 func allEmpty(plans []diff.Plan) bool {

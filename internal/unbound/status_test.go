@@ -21,6 +21,9 @@ type fakeRunner struct {
 	err      error
 	calls    []string
 	stdin    string
+	// stdinByCommand keeps every command's input, not just the last one,
+	// because a single operation can feed several commands in a row.
+	stdinByCommand map[string]string
 }
 
 func (f *fakeRunner) Run(_ context.Context, _ config.Server, cmd string) (transport.Result, error) {
@@ -62,6 +65,12 @@ func (f *fakeRunner) RunWithStdin(ctx context.Context, srv config.Server, cmd st
 
 		f.mu.Lock()
 		f.stdin = string(data)
+
+		if f.stdinByCommand == nil {
+			f.stdinByCommand = map[string]string{}
+		}
+		f.stdinByCommand[cmd] = string(data)
+
 		f.mu.Unlock()
 	}
 
@@ -74,6 +83,20 @@ func (f *fakeRunner) receivedStdin() string {
 	defer f.mu.Unlock()
 
 	return f.stdin
+}
+
+// stdinFor returns the input given to the first command containing needle.
+func (f *fakeRunner) stdinFor(needle string) string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	for cmd, input := range f.stdinByCommand {
+		if strings.Contains(cmd, needle) {
+			return input
+		}
+	}
+
+	return ""
 }
 
 func (f *fakeRunner) sawCommandContaining(needle string) bool {

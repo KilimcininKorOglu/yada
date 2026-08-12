@@ -340,9 +340,9 @@ func (a *App) writeRecord(rec records.Record, editing bool, onDone func()) {
 			return f.Add(rec)
 		})
 
-		changed := a.reportWrites(results)
+		a.reportWrites(results)
 
-		return a.refresh(ctx, cfg, changed)
+		return a.refresh(ctx, cfg, results)
 	}, onDone)
 }
 
@@ -360,16 +360,14 @@ func (a *App) deleteRecord(rec records.Record, onDone func()) {
 			return nil
 		})
 
-		changed := a.reportWrites(results)
+		a.reportWrites(results)
 
-		return a.refresh(ctx, cfg, changed)
+		return a.refresh(ctx, cfg, results)
 	}, onDone)
 }
 
-// reportWrites logs each server's outcome and returns those that changed.
-func (a *App) reportWrites(results []unbound.WriteResult) []config.Server {
-	var changed []config.Server
-
+// reportWrites logs each server's outcome.
+func (a *App) reportWrites(results []unbound.WriteResult) {
 	for _, res := range results {
 		label := res.Server.Label()
 
@@ -388,24 +386,15 @@ func (a *App) reportWrites(results []unbound.WriteResult) []config.Server {
 			a.log.addf("[%s] değişiklik yok", label)
 
 		default:
-			changed = append(changed, res.Server)
 			a.log.addf("[%s] yazıldı:\n%s", label, strings.TrimRight(res.Diff.String(), "\n"))
 		}
 	}
-
-	return changed
 }
 
-// refresh reloads only the servers whose file changed.
-func (a *App) refresh(ctx context.Context, cfg config.Config, changed []config.Server) error {
-	if len(changed) == 0 {
-		return nil
-	}
-
-	scoped := cfg
-	scoped.Servers = changed
-
-	for _, res := range unbound.ReloadAll(ctx, a.transportRunner(), scoped) {
+// refresh makes a write take effect on the servers it changed, pushing each
+// one's own record change into its daemon.
+func (a *App) refresh(ctx context.Context, cfg config.Config, results []unbound.WriteResult) error {
+	for _, res := range unbound.RefreshWrites(ctx, a.transportRunner(), cfg, results) {
 		for _, attempt := range res.Attempts {
 			if attempt.Err != nil {
 				a.log.addf("[%s] %s kullanılamadı: %v", res.Server.Label(), attempt.Tier, attempt.Err)

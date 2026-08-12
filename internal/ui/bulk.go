@@ -175,9 +175,9 @@ func (a *App) applyImport(recs []records.Record, replace bool) {
 			return nil
 		})
 
-		changed := a.reportWrites(results)
+		a.reportWrites(results)
 
-		return a.refresh(ctx, cfg, changed)
+		return a.refresh(ctx, cfg, results)
 	}, nil)
 }
 

@@ -42,6 +42,10 @@ type WriteResult struct {
 	// Diff lists the added and removed lines, and is filled for a dry run too.
 	Diff Diff
 
+	// Change is the same difference expressed as records rather than lines,
+	// which is what the runtime unbound-control push needs.
+	Change records.Change
+
 	Err error
 }
 
@@ -127,6 +131,7 @@ func Write(ctx context.Context, r transport.Runner, srv config.Server, before []
 
 	after := file.Bytes()
 	res.Diff = DiffContent(before, after)
+	res.Change = changeBetween(before, file)
 
 	if res.Diff.Empty() {
 		return res
@@ -182,6 +187,22 @@ func Write(ctx context.Context, r transport.Runner, srv config.Server, before []
 	}
 
 	return res
+}
+
+// changeBetween works out which records moved, by reparsing the bytes the file
+// held before the mutation. The caller mutates its File in place, so the
+// original state is only available as those bytes.
+//
+// A parse failure here is not fatal: without a change set the refresh simply
+// falls back to making the daemon re-read its config, which reaches the same
+// end state by a heavier route.
+func changeBetween(before []byte, after *records.File) records.Change {
+	beforeFile, err := records.Parse(before)
+	if err != nil {
+		return records.Change{}
+	}
+
+	return records.Diff(beforeFile, after)
 }
 
 // rollback restores the backup. A failure here is the worst case: the server

@@ -246,8 +246,8 @@ func (a *App) runSync(sourceLabel string, prune bool, onDone func()) {
 				return nil
 			})
 
-		changed := a.reportWrites(writeResults)
+		a.reportWrites(writeResults)
 
-		return a.refresh(ctx, cfg, changed)
+		return a.refresh(ctx, cfg, writeResults)
 	}, onDone)
 }

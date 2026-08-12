@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/kerem/unbound-dns/internal/config"
+	"github.com/kerem/unbound-dns/internal/records"
 	"github.com/kerem/unbound-dns/internal/transport"
 )
 
@@ -15,6 +16,11 @@ import (
 type Tier string
 
 const (
+	// TierLocalData is unbound-control local_datas: the changed records are
+	// pushed straight into the running daemon. Nothing is reparsed and no cache
+	// entry is dropped, so it is the cheapest tier. It needs the exact change
+	// set, so it only applies to a refresh that follows a write.
+	TierLocalData Tier = "local_data"
 	// TierControl is unbound-control reload_keep_cache: no outage, cache kept.
 	TierControl Tier = "reload_keep_cache"
 	// TierSignal is systemctl reload, which delivers SIGHUP: no outage, cache
@@ -27,6 +33,8 @@ const (
 // Description explains the cost of a tier in user-facing terms.
 func (t Tier) Description() string {
 	switch t {
+	case TierLocalData:
+		return "kesinti yok, config okunmadı, cache korundu"
 	case TierControl:
 		return "kesinti yok, cache korundu"
 	case TierSignal:
@@ -67,14 +75,31 @@ type TierAttempt struct {
 	Output string
 }
 
-// Reload refreshes one server, walking the tiers from lightest to heaviest.
-// The configured strategy can pin a single tier, in which case no fallback
-// happens and a failure is reported as such.
+// Reload refreshes one server without knowing what changed, so the runtime
+// push tier is unavailable and the daemon has to re-read its configuration.
 func Reload(ctx context.Context, r transport.Runner, srv config.Server, strategy config.ReloadStrategy) ReloadResult {
+	return Refresh(ctx, r, srv, strategy, records.Change{})
+}
+
+// Refresh makes a change take effect on one server, walking the tiers from
+// lightest to heaviest.
+//
+// The change is the set of records the write moved. When it is known the
+// daemon can be updated in place with unbound-control local_data, which is why
+// a refresh that follows a write is cheaper than a bare reload. The configured
+// strategy can pin a single tier, in which case no fallback happens and a
+// failure is reported as such.
+func Refresh(
+	ctx context.Context,
+	r transport.Runner,
+	srv config.Server,
+	strategy config.ReloadStrategy,
+	change records.Change,
+) ReloadResult {
 	res := ReloadResult{Server: srv}
 
-	for _, tier := range tiersFor(strategy) {
-		output, err := runTier(ctx, r, srv, tier)
+	for _, tier := range tiersFor(strategy, !change.Empty()) {
+		output, err := runTier(ctx, r, srv, tier, change)
 
 		res.Attempts = append(res.Attempts, TierAttempt{Tier: tier, Err: err, Output: output})
 
@@ -90,21 +115,42 @@ func Reload(ctx context.Context, r transport.Runner, srv config.Server, strategy
 }
 
 // tiersFor maps the configured strategy to the tiers to attempt, in order.
-func tiersFor(strategy config.ReloadStrategy) []Tier {
+//
+// The local_data tier is only offered when the change set is known. Pinning it
+// without one is a configuration the caller cannot satisfy, so the strategy
+// falls back to re-reading the config rather than failing outright.
+func tiersFor(strategy config.ReloadStrategy, haveChange bool) []Tier {
 	switch strategy {
+	case config.ReloadLocalData:
+		if haveChange {
+			return []Tier{TierLocalData}
+		}
+		return []Tier{TierControl}
 	case config.ReloadControl:
 		return []Tier{TierControl}
 	case config.ReloadSignal:
 		return []Tier{TierSignal}
 	case config.ReloadRestart:
 		return []Tier{TierRestart}
-	default:
-		return []Tier{TierControl, TierSignal, TierRestart}
 	}
+
+	if haveChange {
+		return []Tier{TierLocalData, TierControl, TierSignal, TierRestart}
+	}
+
+	return []Tier{TierControl, TierSignal, TierRestart}
 }
 
-func runTier(ctx context.Context, r transport.Runner, srv config.Server, tier Tier) (string, error) {
+func runTier(
+	ctx context.Context,
+	r transport.Runner,
+	srv config.Server,
+	tier Tier,
+	change records.Change,
+) (string, error) {
 	switch tier {
+	case TierLocalData:
+		return pushLocalData(ctx, r, srv, change)
 	case TierControl:
 		return reloadControl(ctx, r, srv)
 	case TierSignal:
@@ -199,9 +245,69 @@ func waitForActive(ctx context.Context, r transport.Runner, srv config.Server) e
 		time.Duration(activePollAttempts)*activePollInterval)
 }
 
-// ReloadAll refreshes every configured server.
+// ReloadAll refreshes every configured server without a known change set.
 func ReloadAll(ctx context.Context, r transport.Runner, cfg config.Config) []ReloadResult {
+	return RefreshAll(ctx, r, cfg, nil)
+}
+
+// RefreshAll refreshes every configured server, using each one's own change
+// when the caller knows it. The map is keyed by server label, since the same
+// write can move different records on different servers.
+func RefreshAll(
+	ctx context.Context,
+	r transport.Runner,
+	cfg config.Config,
+	changes map[string]records.Change,
+) []ReloadResult {
 	return ForEachServer(ctx, cfg, func(ctx context.Context, srv config.Server) ReloadResult {
-		return Reload(ctx, r, srv, cfg.Behaviour.ReloadStrategy)
+		return Refresh(ctx, r, srv, cfg.Behaviour.ReloadStrategy, changes[srv.Label()])
 	})
+}
+
+// ChangesOf collects the record-level change of every write that touched a
+// server, ready to hand to RefreshAll.
+func ChangesOf(results []WriteResult) map[string]records.Change {
+	changes := make(map[string]records.Change, len(results))
+
+	for _, res := range results {
+		if res.Changed {
+			changes[res.Server.Label()] = res.Change
+		}
+	}
+
+	return changes
+}
+
+// ChangedServers lists the servers whose file the write actually modified.
+// A server that was skipped, failed or ran under --dry-run has nothing new to
+// pick up, so refreshing it would be pointless work.
+func ChangedServers(results []WriteResult) []config.Server {
+	var out []config.Server
+
+	for _, res := range results {
+		if res.Changed {
+			out = append(out, res.Server)
+		}
+	}
+
+	return out
+}
+
+// RefreshWrites refreshes exactly the servers a write changed, pushing each
+// one's own record change into its daemon.
+func RefreshWrites(
+	ctx context.Context,
+	r transport.Runner,
+	cfg config.Config,
+	results []WriteResult,
+) []ReloadResult {
+	changed := ChangedServers(results)
+	if len(changed) == 0 {
+		return nil
+	}
+
+	scoped := cfg
+	scoped.Servers = changed
+
+	return RefreshAll(ctx, r, scoped, ChangesOf(results))
 }

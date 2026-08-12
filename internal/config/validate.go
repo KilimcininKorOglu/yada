@@ -120,10 +120,10 @@ func validateBehaviour(b Behaviour) []error {
 	var problems []error
 
 	switch b.ReloadStrategy {
-	case ReloadAuto, ReloadControl, ReloadSignal, ReloadRestart:
+	case ReloadAuto, ReloadLocalData, ReloadControl, ReloadSignal, ReloadRestart:
 	default:
 		problems = append(problems, fmt.Errorf(
-			"behaviour.reload_strategy %q bilinmiyor (auto, control, signal, restart)", b.ReloadStrategy))
+			"behaviour.reload_strategy %q bilinmiyor (auto, local_data, control, signal, restart)", b.ReloadStrategy))
 	}
 
 	if b.MaxParallel < 1 {

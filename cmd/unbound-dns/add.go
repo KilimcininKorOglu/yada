@@ -74,18 +74,20 @@ func runAdd(ctx context.Context, name, typeName, value string, ttl *uint32) erro
 		return f.Add(rec)
 	})
 
-	changed, err := reportWriteResults("Eklenecek kayıt", rec, results, opts.DryRun)
-	if err != nil {
+	if err := reportWriteResults("Eklenecek kayıt", rec, results, opts.DryRun); err != nil {
 		return err
 	}
 
-	return refreshChanged(ctx, runner, cfg, changed)
+	return refreshChanged(ctx, runner, cfg, results)
 }
 
-// refreshChanged reloads only the servers whose file actually changed. A
-// server that was skipped or failed has nothing new to pick up.
-func refreshChanged(ctx context.Context, runner transport.Runner, cfg config.Config, changed []config.Server) error {
-	if len(changed) == 0 || flags.dryRun {
+// refreshChanged makes the write take effect on the servers it actually
+// changed. A server that was skipped or failed has nothing new to pick up.
+//
+// The write results carry the records that moved, so the refresh can push them
+// straight into the running daemon instead of making it re-read its config.
+func refreshChanged(ctx context.Context, runner transport.Runner, cfg config.Config, results []unbound.WriteResult) error {
+	if flags.dryRun || len(unbound.ChangedServers(results)) == 0 {
 		return nil
 	}
 
@@ -96,18 +98,12 @@ func refreshChanged(ctx context.Context, runner transport.Runner, cfg config.Con
 
 	fmt.Println("\nServisler yenileniyor...")
 
-	scoped := cfg
-	scoped.Servers = changed
-
-	results := unbound.ReloadAll(ctx, runner, scoped)
-
-	return reportReloadResults(results, cfg.Behaviour.ReloadStrategy)
+	return reportReloadResults(unbound.RefreshWrites(ctx, runner, cfg, results), cfg.Behaviour.ReloadStrategy)
 }
 
 // reportWriteResults prints what happened per server and turns failures into
-// an exit code. It returns the servers whose file actually changed, which is
-// the set that needs refreshing afterwards.
-func reportWriteResults(title string, rec records.Record, results []unbound.WriteResult, dryRun bool) ([]config.Server, error) {
+// an exit code.
+func reportWriteResults(title string, rec records.Record, results []unbound.WriteResult, dryRun bool) error {
 	fmt.Printf("%s: %s\n", title, rec.String())
 
 	if dryRun {
@@ -116,10 +112,7 @@ func reportWriteResults(title string, rec records.Record, results []unbound.Writ
 
 	fmt.Println()
 
-	var (
-		failed  int
-		changed []config.Server
-	)
+	var failed int
 
 	for _, res := range results {
 		label := res.Server.Label()
@@ -148,20 +141,19 @@ func reportWriteResults(title string, rec records.Record, results []unbound.Writ
 			fmt.Print(indentBlock(res.Diff.String()))
 
 		default:
-			changed = append(changed, res.Server)
 			fmt.Printf("[%s] eklendi\n", label)
 			fmt.Print(indentBlock(res.Diff.String()))
 		}
 	}
 
 	if failed > 0 {
-		return changed, &exitCodeError{
+		return &exitCodeError{
 			code: exitCodeFor(failed, len(results)),
 			msg:  fmt.Sprintf("%d sunucuda işlem başarısız oldu", failed),
 		}
 	}
 
-	return changed, nil
+	return nil
 }
 
 // isAlreadyExists reports whether the failure is only that the record is

@@ -8,7 +8,6 @@ import (
 	"sort"
 
 	"github.com/kerem/unbound-dns/internal/bulk"
-	"github.com/kerem/unbound-dns/internal/config"
 	"github.com/kerem/unbound-dns/internal/records"
 	"github.com/kerem/unbound-dns/internal/transport"
 	"github.com/kerem/unbound-dns/internal/unbound"
@@ -94,15 +93,14 @@ func runImport(ctx context.Context, path string, replace bool) error {
 		return applyImport(f, parsed.Records, replace)
 	})
 
-	changed, err := reportBulkResults(results, opts.DryRun)
-	if err != nil {
+	if err := reportBulkResults(results, opts.DryRun); err != nil {
 		return err
 	}
 
 	// Rows that failed to parse are still a partial failure, even when every
 	// server accepted the rest.
 	if len(parsed.Errors) > 0 {
-		if err := refreshChanged(ctx, runner, cfg, changed); err != nil {
+		if err := refreshChanged(ctx, runner, cfg, results); err != nil {
 			return err
 		}
 
@@ -112,7 +110,7 @@ func runImport(ctx context.Context, path string, replace bool) error {
 		}
 	}
 
-	return refreshChanged(ctx, runner, cfg, changed)
+	return refreshChanged(ctx, runner, cfg, results)
 }
 
 // applyImport adds every record, replacing the existing set when asked.
@@ -148,17 +146,14 @@ func applyImport(f *records.File, recs []records.Record, replace bool) error {
 	return nil
 }
 
-func reportBulkResults(results []unbound.WriteResult, dryRun bool) ([]config.Server, error) {
+func reportBulkResults(results []unbound.WriteResult, dryRun bool) error {
 	if dryRun {
 		fmt.Println("(dry-run: hiçbir değişiklik yapılmadı)")
 	}
 
 	fmt.Println()
 
-	var (
-		failed  int
-		changed []config.Server
-	)
+	var failed int
 
 	for _, res := range results {
 		label := res.Server.Label()
@@ -179,10 +174,6 @@ func reportBulkResults(results []unbound.WriteResult, dryRun bool) ([]config.Ser
 			fmt.Printf("[%s] değişiklik yok\n", label)
 
 		default:
-			if !dryRun {
-				changed = append(changed, res.Server)
-			}
-
 			fmt.Printf("[%s] %d satır eklendi, %d satır silindi\n",
 				label, len(res.Diff.Added), len(res.Diff.Removed))
 			fmt.Print(indentBlock(res.Diff.String()))
@@ -190,13 +181,13 @@ func reportBulkResults(results []unbound.WriteResult, dryRun bool) ([]config.Ser
 	}
 
 	if failed > 0 {
-		return changed, &exitCodeError{
+		return &exitCodeError{
 			code: exitCodeFor(failed, len(results)),
 			msg:  fmt.Sprintf("%d sunucuda işlem başarısız oldu", failed),
 		}
 	}
 
-	return changed, nil
+	return nil
 }
 
 func newExportCommand() *cobra.Command {

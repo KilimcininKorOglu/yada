@@ -50,10 +50,16 @@ behaviour:
   # Yazmadan önce .bak dosyası oluştur. Doğrulama başarısız olursa
   # geri alma bu dosyadan yapılır.
   backup_before_write: true
-  # auto    : reload_keep_cache, sonra systemctl reload, sonra restart
-  # control : sadece unbound-control reload_keep_cache
-  # signal  : sadece systemctl reload (SIGHUP)
-  # restart : sadece systemctl restart
+  # auto       : local_data, sonra reload_keep_cache, sonra systemctl reload,
+  #              sonra systemctl restart
+  # local_data : sadece unbound-control local_data. Değişen kayıtlar çalışan
+  #              daemon'a doğrudan yazılır, config hiç okunmaz. Kalıcılık kayıt
+  #              dosyasından gelir. Yalnızca bu araç bir yazma yaptıktan sonra
+  #              kullanılabilir; `reload` komutu neyin değiştiğini bilmediği
+  #              için bir üst kademeye düşer.
+  # control    : sadece unbound-control reload_keep_cache
+  # signal     : sadece systemctl reload (SIGHUP)
+  # restart    : sadece systemctl restart
   reload_strategy: auto
   # Silme ve eşitleme öncesi onay iste.
   confirm_destructive: true

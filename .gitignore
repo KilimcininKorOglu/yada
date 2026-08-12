@@ -1,0 +1,7 @@
+dist/
+*.exe
+*.app/
+
+# The real configuration may hold host names and user names for internal
+# infrastructure; only the example is tracked.
+unbound-dns.conf

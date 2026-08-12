@@ -1,0 +1,63 @@
+# unbound-dns ayar dosyası.
+#
+# Bu dosya iki konumda aranır, ilk bulunan kullanılır:
+#   1. Çalışan uygulamanın bulunduğu dizin
+#   2. Kullanıcı ana dizini
+# --config <yol> bayrağı her ikisini de geçersiz kılar.
+#
+# Kullanmak için bu dosyayı unbound-dns.conf adıyla kopyalayın.
+
+# Bağlanılacak Unbound sunucuları. En az bir tane zorunlu.
+servers:
+  - name: ns1                                    # görünen ad, zorunlu değil
+    host: 192.0.2.4
+    user: user01
+    port: 22
+    records_file: /etc/unbound/local_records.conf
+    main_config: /etc/unbound/unbound.conf
+
+  - name: ns2
+    host: 192.0.2.5
+    # Aşağıdaki alanlar verilmediği için defaults bölümünden alınır.
+
+# Sunucu bazında verilmeyen alanlar buradan tamamlanır.
+defaults:
+  user: user01
+  port: 22
+  # Kayıtların yazıldığı dosya. unbound.conf içinden include ile çağrılmalı.
+  records_file: /etc/unbound/local_records.conf
+  # unbound-checkconf bu dosyayı doğrular. records_file tek başına
+  # doğrulanamaz, çünkü include ile server clause içine gömülür.
+  main_config: /etc/unbound/unbound.conf
+  # Uzak komutlar sudo ile çalışsın mı.
+  sudo: true
+
+ssh:
+  # PATH üzerinde farklı bir isim kullanılıyorsa değiştirin.
+  binary: ssh
+  connect_timeout: 10s
+  # ssh -o olarak geçirilir. BatchMode, parola isteyen sunucunun
+  # beklemeye girmesini engeller.
+  options:
+    - BatchMode=yes
+  # Boş bırakılırsa ssh kendi ~/.ssh/config dosyasını kullanır.
+  config_file: ""
+
+behaviour:
+  # Sunuculara eşzamanlı bağlan.
+  parallel: true
+  max_parallel: 4
+  # Yazmadan önce .bak dosyası oluştur. Doğrulama başarısız olursa
+  # geri alma bu dosyadan yapılır.
+  backup_before_write: true
+  # auto    : reload_keep_cache, sonra systemctl reload, sonra restart
+  # control : sadece unbound-control reload_keep_cache
+  # signal  : sadece systemctl reload (SIGHUP)
+  # restart : sadece systemctl restart
+  reload_strategy: auto
+  # Silme ve eşitleme öncesi onay iste.
+  confirm_destructive: true
+
+log:
+  level: info                                    # debug | info | warn | error
+  file: ""                                       # boş ise sadece ekrana yazar

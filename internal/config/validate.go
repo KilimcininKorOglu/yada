@@ -77,6 +77,36 @@ func describeTarget(srv Server, defaultPort int) string {
 	return fmt.Sprintf("host %q", srv.Host)
 }
 
+// ValidateFields checks the fields a caller supplies directly, before the
+// defaults block has filled in the rest.
+//
+// The remote paths are left out on purpose: they normally come from defaults,
+// so a server that omits them is not wrong yet. The whole file is validated
+// again by Decode once the edit has been made.
+func (s Server) ValidateFields() error {
+	var problems []error
+
+	switch {
+	case s.Host == "":
+		problems = append(problems, errors.New("adres zorunlu"))
+	case !hostPattern.MatchString(s.Host):
+		problems = append(problems, fmt.Errorf("adres %q geçersiz karakter içeriyor", s.Host))
+	}
+
+	switch {
+	case s.User == "":
+		problems = append(problems, errors.New("kullanıcı zorunlu"))
+	case !userPattern.MatchString(s.User):
+		problems = append(problems, fmt.Errorf("kullanıcı %q geçersiz karakter içeriyor", s.User))
+	}
+
+	if s.Port != 0 && (s.Port < 1 || s.Port > 65535) {
+		problems = append(problems, fmt.Errorf("port %d aralık dışında (1-65535)", s.Port))
+	}
+
+	return errors.Join(problems...)
+}
+
 func validateServer(where string, srv Server) []error {
 	var problems []error
 

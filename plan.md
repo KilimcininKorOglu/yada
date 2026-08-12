@@ -352,6 +352,8 @@ Sürüm bilgisi `-ldflags "-X main.version=..."` ile gömülür, `unbound-dns ve
 
 Her aşama kendi içinde çalışır durumda bitirilir ve ayrı ayrı commit edilir.
 
+**Durum: tüm aşamalar tamamlandı.** Uygulama sırasında planın 4.2, 6.5 ve 8. bölümlerinde düzeltmeler yapıldı; bunlar ilgili bölümlere işlendi.
+
 | Aşama | İçerik | Biterken doğrulanan |
 |---|---|---|
 | 1 | Proje iskeleti, `go.mod`, Makefile, `internal/config` | Ayar dosyası iki konumdan da yükleniyor, eksik alanlar raporlanıyor |
@@ -380,8 +382,14 @@ Bu sürümde yapılmayacaklar, sonraya bırakılanlar:
 
 ## 17. Açık noktalar
 
-Uygulamaya başlamadan önce netleşmesi gerekenler:
+Uygulama, aşağıdaki varsayımlarla tamamlandı. Farklıysa ek iş gerekir:
 
-1. Sunucularda `sudo` parolasız mı çalışacak? Parola gerekiyorsa GUI'da güvenli sorma akışı ve CLI'da terminal isteği eklenmelidir; bu, planın 5. ve 7. bölümlerini genişletir.
-2. `unbound-checkconf`, `unbound-control` ve `systemctl` yollarının dağıtımlar arasında farklılık ihtimali. Gerekirse ayar dosyasına `paths` bölümü eklenir.
-3. Uygulama mevcut repoda mı yoksa ayrı bir repoda mı geliştirilecek? Mevcut repoda ise `unbound.ps1` korunacak mı, yoksa Go sürümü tamamlandığında kaldırılacak mı?
+1. **Parolasız `sudo` varsayıldı.** Sunucularda `$Username` için `unbound-checkconf`, `unbound-control` ve `systemctl` komutlarının parolasız çalıştığı kabul edildi. Parola isteniyorsa GUI'ya güvenli sorma akışı, CLI'ya terminal isteği eklenmelidir.
+2. **Varsayılan araç yolları varsayıldı.** `unbound-checkconf`, `unbound-control` ve `systemctl` komutlarının `sudo` secure_path üzerinden bulunduğu kabul edildi. Dağıtımınızda farklıysa ayar dosyasına bir `paths` bölümü eklenmelidir.
+3. **Geliştirme bu repoda yapıldı** ve `unbound.ps1` yerinde bırakıldı. Go sürümü onu işlevsel olarak kapsıyor; kaldırma kararı kullanıcıya ait.
+
+### Sonraki adım adayları
+
+- GUI için macOS imzalama ve notarization, Windows kod imzalama.
+- GitHub Actions ile üç platformda native GUI derlemesi.
+- `unbound-control local_data` ile çalışma zamanı ekleme (kalıcılık dosya üzerinden sürer).

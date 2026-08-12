@@ -19,12 +19,21 @@ Hazır binary yoksa kaynaktan derleyin. `go.mod` Go 1.26.5 ister.
 ```bash
 make build            # unbound-dns (arayüz + CLI, cgo gerekir)
 make build-cli        # unbound-dns-cli (yalnızca CLI, statik)
-make cross-cli        # linux, macOS ve Windows için statik CLI
+make cross-cli        # beş platform için statik CLI
+make cross-gui        # beş platform için arayüzlü yapı (tek makineden)
 ```
 
 `make build` tek bir binary üretir: argümansız çalıştırıldığında masaüstü arayüzünü açar, `-cli` ile komut satırına geçer. Fyne kullandığı için cgo ister ve her platformda ayrı derlenir. Linux'ta derlemek için `libgl1-mesa-dev` ve `xorg-dev` paketleri gerekir.
 
 `make build-cli`, `nogui` build tag'i ile arayüzü çıkarır. Geriye `CGO_ENABLED=0` ile derlenen statik bir binary kalır; tek komutla beş platforma çapraz derlenir ve hedef makinede çalışma zamanı bağımlılığı aramaz. Sunucular ve CI için olan yapı budur.
+
+`make cross-gui` beş platformun arayüzlü yapısını tek bir macOS makinesinden üretir. Hedef başına bir C toolchain ister:
+
+```bash
+brew install FiloSottile/musl-cross/musl-cross mingw-w64
+```
+
+Linux hedefleri çapraz derlenmez, konteyner içinde derlenir: glfw hedefin X11, Wayland ve OpenGL başlıklarına karşı derleniyor ve hiçbir çapraz toolchain bunları getirmiyor. Apple Silicon üzerinde `linux/amd64` emülasyonla çalışır, yavaştır. CI'nın bu hedefe ihtiyacı yok, her platformu kendi runner'ında derliyor.
 
 ## Ön koşullar
 

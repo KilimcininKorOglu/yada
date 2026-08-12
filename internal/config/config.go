@@ -2,23 +2,21 @@
 package config
 
 import (
-	_ "embed"
 	"fmt"
 	"time"
 
 	"gopkg.in/yaml.v3"
+
+	unbounddns "github.com/kerem/unbound-dns"
 )
 
 // FileName is the fixed name looked up next to the executable and in the home
 // directory.
 const FileName = "unbound-dns.conf"
 
-// Example is the commented starter configuration. It is embedded so a binary
-// copied anywhere can still write a usable file, and it doubles as the
-// documentation of every available key.
-//
-//go:embed unbound-dns.conf.example
-var Example []byte
+// Example is the commented starter configuration, embedded at the repository
+// root so the file stays visible there rather than buried in this package.
+var Example = unbounddns.ConfExample
 
 // ReloadStrategy selects which refresh tiers are attempted after a write.
 type ReloadStrategy string

@@ -75,7 +75,7 @@ defaults:
   main_config: /etc/unbound/unbound.conf
 ```
 
-Tüm anahtarların açıklaması `internal/config/unbound-dns.conf.example` dosyasındadır.
+Tüm anahtarların açıklaması proje kökündeki `unbound-dns.conf.example` dosyasındadır. Aynı dosya binary'nin içine gömülüdür, `config init` onu yazar.
 
 `records_file`, `unbound.conf` içinden `include:` ile çağrılan dosyadır. `main_config` ise `unbound-checkconf` ile doğrulanan ana dosyadır. Kayıt dosyası tek başına doğrulanamaz, çünkü `include` onu `server:` bloğunun içine gömer ve fragment kendi başına geçerli bir config değildir.
 
@@ -132,6 +132,12 @@ ipv6.example.com,AAAA,2001:db8::1,
 ```
 
 Hatalı satırlar satır numarasıyla bildirilir ve atlanır, geçerli satırlar uygulanır. Dışa aktarılan dosya doğrudan içe aktarılabilir.
+
+Proje kökündeki `kayitlar.csv` her kayıt tipinden örnek içerir. Uygulamadan önce ne olacağını görmek için:
+
+```bash
+unbound-dns import kayitlar.csv --dry-run
+```
 
 ## Yazma güvenliği
 

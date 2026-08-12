@@ -226,7 +226,7 @@ $needsReload = $false
 
 # Ana döngü - kayıt ekleme
 do {
-    Write-Host "`n" + ("=" * 60) -ForegroundColor $Cyan
+    Write-Host ("`n" + ("=" * 60)) -ForegroundColor $Cyan
     Write-ColorOutput "YENİ DNS KAYDI EKLEME" $Cyan
     Write-Host ("=" * 60) -ForegroundColor $Cyan
 
@@ -255,7 +255,7 @@ do {
     } while ([string]::IsNullOrWhiteSpace($ipAddress))
 
     # Özet göster
-    Write-Host "`n" + ("-" * 50) -ForegroundColor $Yellow
+    Write-Host ("`n" + ("-" * 50)) -ForegroundColor $Yellow
     Write-ColorOutput "KAYIT ÖZETİ:" $Yellow
     Write-ColorOutput "Domain: $domain" $White
     Write-ColorOutput "IP: $ipAddress" $White
@@ -288,14 +288,14 @@ do {
     }
 
     # Devam etme onayı
-    Write-Host "`n" + ("=" * 60) -ForegroundColor $Cyan
+    Write-Host ("`n" + ("=" * 60)) -ForegroundColor $Cyan
     $continue = Read-Host "Başka bir kayıt eklemek istiyor musunuz? (E/H)"
 
 } while ($continue -eq "E" -or $continue -eq "e")
 
 # Eğer kayıt eklendiyse yenilemeyi sor
 if ($needsReload) {
-    Write-Host "`n" + ("=" * 60) -ForegroundColor $Cyan
+    Write-Host ("`n" + ("=" * 60)) -ForegroundColor $Cyan
     $finalReloadConfirm = Read-Host "Unbound servislerini yenilemek istiyor musunuz? (E/H)"
 
     if ($finalReloadConfirm -eq "E" -or $finalReloadConfirm -eq "e") {
@@ -321,7 +321,7 @@ if ($needsReload) {
         }
 
         # Sonuçları özetle
-        Write-Host "`n" + ("=" * 60) -ForegroundColor $Cyan
+        Write-Host ("`n" + ("=" * 60)) -ForegroundColor $Cyan
         Write-ColorOutput "YENİLEME SONUÇLARI:" $Cyan
         Write-Host ("=" * 60) -ForegroundColor $Cyan
 

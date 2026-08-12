@@ -125,6 +125,30 @@ function Test-UnboundConfig {
     }
 }
 
+function Invoke-UnboundReload {
+    param($Server, $Username)
+
+    try {
+        Write-ColorOutput "[$Server] Config yeniden yükleniyor (reload_keep_cache)..." $Yellow
+        $output = ssh "$Username@$Server" "sudo unbound-control reload_keep_cache 2>&1"
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-ColorOutput "[$Server] reload_keep_cache kullanılamadı (çıkış kodu: $LASTEXITCODE)" $Yellow
+            foreach ($line in $output) {
+                Write-ColorOutput "[$Server]   $line" $Yellow
+            }
+            return $false
+        }
+
+        Write-ColorOutput "[$Server] ✅ Config yeniden yüklendi, cache korundu" $Green
+        return $true
+    }
+    catch {
+        Write-ColorOutput "[$Server] Yeniden yükleme sırasında hata: $($_.Exception.Message)" $Yellow
+        return $false
+    }
+}
+
 function Restart-UnboundService {
     param($Server, $Username)
 
@@ -164,7 +188,7 @@ function Show-Banner {
 ║              UNBOUND DNS KAYIT YÖNETİCİSİ                ║
 ║                                                          ║
 ║  Bu script Unbound DNS sunucularınıza otomatik olarak    ║
-║  DNS kayıtları ekler ve servisi yeniden başlatır         ║
+║  DNS kayıtları ekler ve config'i yeniden yükler          ║
 ╚══════════════════════════════════════════════════════════╝
 "@ -ForegroundColor $Cyan
     Write-Host ""
@@ -197,8 +221,8 @@ if ($validServers.Count -eq 0) {
 
 Write-ColorOutput "`n✅ $($validServers.Count) sunucu kullanılabilir: $($validServers -join ', ')" $Green
 
-# Yeniden başlatma gerekip gerekmediğini takip etmek için değişken
-$needsRestart = $false
+# Yenileme gerekip gerekmediğini takip etmek için değişken
+$needsReload = $false
 
 # Ana döngü - kayıt ekleme
 do {
@@ -253,7 +277,7 @@ do {
 
         if ($allSuccessful) {
             Write-ColorOutput "`n✅ Tüm sunuculara kayıtlar başarıyla eklendi!" $Green
-            $needsRestart = $true  # Yeniden başlatma gerektiğini işaretle
+            $needsReload = $true  # Yenileme gerektiğini işaretle
         }
         else {
             Write-ColorOutput "`n❌ Bazı sunucularda kayıt ekleme başarısız oldu!" $Red
@@ -269,33 +293,39 @@ do {
 
 } while ($continue -eq "E" -or $continue -eq "e")
 
-# Eğer kayıt eklendiyse yeniden başlatmayı sor
-if ($needsRestart) {
+# Eğer kayıt eklendiyse yenilemeyi sor
+if ($needsReload) {
     Write-Host "`n" + ("=" * 60) -ForegroundColor $Cyan
-    $finalRestartConfirm = Read-Host "Unbound servislerini yeniden başlatmak istiyor musunuz? (E/H)"
+    $finalReloadConfirm = Read-Host "Unbound servislerini yenilemek istiyor musunuz? (E/H)"
 
-    if ($finalRestartConfirm -eq "E" -or $finalRestartConfirm -eq "e") {
-        Write-ColorOutput "`n🔄 Servisler yeniden başlatılıyor..." $Yellow
+    if ($finalReloadConfirm -eq "E" -or $finalReloadConfirm -eq "e") {
+        Write-ColorOutput "`n🔄 Servisler yenileniyor..." $Yellow
 
-        $restartResults = @()
+        $reloadResults = @()
         foreach ($server in $validServers) {
-            # Config bozuksa servisi yeniden başlatma, aksi halde unbound açılmaz
+            # Config bozuksa servise dokunma, aksi halde unbound açılmaz
             if (-not (Test-UnboundConfig -Server $server -Username $Username -MainConfigFile $MainConfigFile)) {
-                Write-ColorOutput "[$server] Config geçersiz, servis yeniden başlatılmadı" $Yellow
-                $restartResults += @{Server = $server; Success = $false}
+                Write-ColorOutput "[$server] Config geçersiz, yenileme yapılmadı" $Yellow
+                $reloadResults += @{Server = $server; Success = $false}
                 continue
             }
 
-            $result = Restart-UnboundService -Server $server -Username $Username
-            $restartResults += @{Server = $server; Success = $result}
+            # Önce kesintisiz yolu dene, olmazsa servisi yeniden başlat
+            $result = Invoke-UnboundReload -Server $server -Username $Username
+            if (-not $result) {
+                Write-ColorOutput "[$server] Servisi yeniden başlatmaya geçiliyor" $Yellow
+                $result = Restart-UnboundService -Server $server -Username $Username
+            }
+
+            $reloadResults += @{Server = $server; Success = $result}
         }
 
         # Sonuçları özetle
         Write-Host "`n" + ("=" * 60) -ForegroundColor $Cyan
-        Write-ColorOutput "YENİDEN BAŞLATMA SONUÇLARI:" $Cyan
+        Write-ColorOutput "YENİLEME SONUÇLARI:" $Cyan
         Write-Host ("=" * 60) -ForegroundColor $Cyan
 
-        foreach ($result in $restartResults) {
+        foreach ($result in $reloadResults) {
             if ($result.Success) {
                 Write-ColorOutput "[$($result.Server)] ✅ Başarılı" $Green
             }

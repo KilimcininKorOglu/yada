@@ -54,6 +54,11 @@ func Run(version, configPath string) {
 	a.log = newLogPanel()
 
 	a.loadConfig()
+
+	// Closing the sink flushes the last lines, which matters because the panel
+	// itself does not survive the window.
+	defer a.log.close()
+
 	a.window.SetContent(a.buildTabs())
 	a.window.ShowAndRun()
 }
@@ -71,6 +76,12 @@ func (a *App) loadConfig() {
 	a.cfg = cfg
 	a.runner = transport.NewSSHRunner(cfg.SSH)
 	a.mu.Unlock()
+
+	// The sink is reopened on every load, so editing log.file takes effect
+	// without restarting the application.
+	if err := a.log.setFile(cfg.Log.File); err != nil {
+		a.log.addf("UYARI: %v", err)
+	}
 
 	a.log.addf("Ayar yüklendi: %s (%d sunucu)", cfg.SourcePath, len(cfg.Servers))
 }

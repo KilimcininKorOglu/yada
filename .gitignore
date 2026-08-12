@@ -11,3 +11,6 @@ unbound-dns.conf
 
 # Test fixture ssh keys, generated per machine and never committed.
 docker/keys/
+
+# Log written by the desktop interface during manual testing.
+docker/unbound-dns.log

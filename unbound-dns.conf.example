@@ -65,5 +65,10 @@ behaviour:
   confirm_destructive: true
 
 log:
+  # Şu an yalnızca doğrulanıyor, çıktı ayrıntısını henüz etkilemiyor.
   level: info                                    # debug | info | warn | error
-  file: ""                                       # boş ise sadece ekrana yazar
+  # Masaüstü arayüzünün Günlük sekmesindeki satırlar bu dosyaya da yazılır.
+  # Dosya varsa üzerine eklenir, yoksa oluşturulur. Boş ise günlük yalnızca
+  # pencerede tutulur ve pencere kapanınca kaybolur.
+  # Komut satırı bu anahtardan etkilenmez, çıktısını her zaman ekrana verir.
+  file: ""                                       # örnek: /Users/adiniz/unbound-dns.log

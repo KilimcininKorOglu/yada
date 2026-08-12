@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -116,9 +115,7 @@ func runImport(ctx context.Context, path string, replace bool) error {
 	return refreshChanged(ctx, runner, cfg, results)
 }
 
-// applyImport adds every record, replacing the existing set when asked.
-// An already-present record is not an error here: importing the same file
-// twice should converge rather than fail.
+// applyImport writes every record, replacing the existing set when asked.
 func applyImport(f *records.File, recs []records.Record, replace bool) error {
 	if replace {
 		for _, existing := range f.All() {
@@ -127,16 +124,9 @@ func applyImport(f *records.File, recs []records.Record, replace bool) error {
 	}
 
 	for _, rec := range recs {
-		if err := f.Add(rec); err != nil {
-			if _, exists := errors.AsType[*records.ErrExists](err); exists {
-				// Update it instead, so an import can also change values.
-				if err := f.Update(rec); err != nil {
-					return err
-				}
-
-				continue
-			}
-
+		// Set rather than Add: importing a file twice should converge on it
+		// rather than fail on the second run.
+		if err := f.Set(rec); err != nil {
 			return err
 		}
 	}

@@ -4,7 +4,6 @@ package ui
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -154,17 +153,9 @@ func (a *App) applyImport(recs []records.Record, replace bool) {
 			}
 
 			for _, rec := range recs {
-				if err := f.Add(rec); err != nil {
-					// An existing record becomes an update, so re-applying a
-					// file converges instead of failing on every row.
-					if _, exists := errors.AsType[*records.ErrExists](err); exists {
-						if err := f.Update(rec); err != nil {
-							return err
-						}
-
-						continue
-					}
-
+				// Set rather than Add, so re-applying a file converges
+				// instead of failing on every row it already holds.
+				if err := f.Set(rec); err != nil {
 					return err
 				}
 			}

@@ -5,6 +5,7 @@ package ui
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -115,6 +116,13 @@ func TestSaveSettingsCreatesMissingDirectory(t *testing.T) {
 // The file names the servers and the account used to reach them, so it must
 // not be world readable.
 func TestSaveSettingsKeepsTheFilePrivate(t *testing.T) {
+	// Windows has no POSIX mode. Go maps the write bit onto the read-only
+	// attribute and reports 0666 back, so the permission this asserts is
+	// carried by an ACL that os.Stat does not express.
+	if runtime.GOOS == "windows" {
+		t.Skip("dosya izinleri Windows'ta ACL ile tutulur, mod bitleri anlamsız")
+	}
+
 	path := filepath.Join(t.TempDir(), "yada.conf")
 
 	a := newTestApp(t, path)

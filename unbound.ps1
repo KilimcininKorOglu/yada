@@ -17,6 +17,7 @@ $Red = "Red"
 $Green = "Green"
 $Yellow = "Yellow"
 $Cyan = "Cyan"
+$White = "White"
 
 function Write-ColorOutput {
     param($Message, $Color = "White")

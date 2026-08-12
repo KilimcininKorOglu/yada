@@ -107,6 +107,10 @@ func Default() Config {
 
 // Load reads, decodes and validates the configuration at path.
 func Load(path string) (Config, error) {
+	// The path is the configuration file the operator chose, either with
+	// --config or through the search order. Confining it to a fixed root
+	// would remove the ability to keep the file where they want it.
+	// #nosec G304
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return Config{}, fmt.Errorf("ayar dosyası okunamadı (%s): %w", path, err)

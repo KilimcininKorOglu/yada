@@ -53,6 +53,10 @@ func (a *App) buildSettingsTab() fyne.CanvasObject {
 
 		pathLabel.SetText(path)
 
+		// configTarget resolves the path from --config, the loaded
+		// configuration or the executable directory, all of which the
+		// operator controls.
+		// #nosec G304
 		data, err := os.ReadFile(path)
 		switch {
 		case errors.Is(err, fs.ErrNotExist):

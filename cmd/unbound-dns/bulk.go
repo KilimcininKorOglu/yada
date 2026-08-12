@@ -38,6 +38,9 @@ func newImportCommand() *cobra.Command {
 }
 
 func runImport(ctx context.Context, path string, replace bool) error {
+	// The path is the CSV the operator named on the command line, which is
+	// the entire point of the command.
+	// #nosec G304
 	file, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("dosya açılamadı: %w", err)
@@ -257,6 +260,8 @@ func runExport(ctx context.Context, target, typeName string) error {
 // rather than deferred away, because a failure to flush means the file on disk
 // is incomplete and reporting success would be a lie.
 func writeExportFile(target string, recs []records.Record) error {
+	// The target is where the operator asked for the export to go.
+	// #nosec G304
 	file, err := os.Create(target)
 	if err != nil {
 		return fmt.Errorf("dosya oluşturulamadı: %w", err)

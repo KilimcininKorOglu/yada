@@ -73,7 +73,9 @@ func (l *logPanel) setFile(path string) error {
 	}
 
 	// The log records which servers exist and what was changed on them, so it
-	// is readable only by its owner.
+	// is readable only by its owner. The path itself comes from log.file in the
+	// operator's own configuration, which is why the variable path is safe.
+	// #nosec G304
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		l.mu.Unlock()

@@ -94,6 +94,13 @@ func (r *SSHRunner) run(ctx context.Context, srv config.Server, cmd string, stdi
 
 	var stdout, stderr bytes.Buffer
 
+	// No shell is involved: the arguments go straight to execve, so nothing
+	// here can be reinterpreted locally. The remote shell does interpret the
+	// command, but every value that reaches it is constrained first, in
+	// config.validateServer and validateRemotePath, and the record data
+	// travels over stdin rather than the command line. gosec cannot follow
+	// those checks.
+	// #nosec G204
 	c := exec.CommandContext(ctx, r.binary(), args...)
 	c.Stdout = &stdout
 	c.Stderr = &stderr

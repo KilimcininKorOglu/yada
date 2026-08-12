@@ -63,6 +63,8 @@ func newRootCommand() *cobra.Command {
 	root.AddCommand(newDeleteCommand())
 	root.AddCommand(newUpdateCommand())
 	root.AddCommand(newReloadCommand())
+	root.AddCommand(newImportCommand())
+	root.AddCommand(newExportCommand())
 
 	return root
 }

@@ -106,14 +106,11 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
+      # Nothing is uploaded: the point is to catch a break in the platform
+      # specific code that the Linux test job never compiles. The binaries a
+      # user downloads come from release.yml.
       - name: Cross-compile
         run: make cross-cli
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: yada-cli
-          path: dist/
-          retention-days: 7
 
   # The full binary links Fyne, so it cannot be cross-compiled and has to be
   # built on each target.

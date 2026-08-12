@@ -369,12 +369,12 @@ func TestParseAcceptsSingleQuotedValues(t *testing.T) {
 	}
 }
 
-// A value holding a double quote must be written inside single quotes,
-// otherwise the generated line would terminate the string early.
-func TestGeneratedTXTUsesSingleQuotes(t *testing.T) {
+// TXT data is a character-string: unquoted, a value with spaces would be read
+// as several strings instead of one.
+func TestGeneratedTXTIsQuoted(t *testing.T) {
 	f, _ := Parse(nil)
 
-	rec, err := New("note.example.com", TypeTXT, `"merhaba"`, nil)
+	rec, err := New("note.example.com", TypeTXT, "v=spf1 include:_spf.google.com ~all", nil)
 	if err != nil {
 		t.Fatalf("kayıt oluşturulamadı: %v", err)
 	}
@@ -385,8 +385,41 @@ func TestGeneratedTXTUsesSingleQuotes(t *testing.T) {
 
 	out := string(f.Bytes())
 
-	if !strings.Contains(out, `local-data: 'note.example.com. IN TXT "merhaba"'`) {
-		t.Errorf("çift tırnaklı değer tek tırnakla sarılmadı:\n%s", out)
+	// The inner quotes force the outer delimiter to become a single quote.
+	want := `local-data: 'note.example.com. IN TXT "v=spf1 include:_spf.google.com ~all"'`
+	if !strings.Contains(out, want) {
+		t.Errorf("TXT değeri tırnaklanmadı:\ngelen:\n%s\nbeklenen satır:\n%s", out, want)
+	}
+}
+
+// A value the user already quoted must not be quoted twice.
+func TestGeneratedTXTDoesNotDoubleQuote(t *testing.T) {
+	f, _ := Parse(nil)
+
+	rec, _ := New("note.example.com", TypeTXT, `"zaten tırnaklı"`, nil)
+	if err := f.Add(rec); err != nil {
+		t.Fatalf("ekleme hatası: %v", err)
+	}
+
+	out := string(f.Bytes())
+
+	if strings.Contains(out, `""`) {
+		t.Errorf("değer iki kez tırnaklandı:\n%s", out)
+	}
+}
+
+// A round trip through the parser must not change a quoted TXT record.
+func TestTXTRoundTrip(t *testing.T) {
+	const input = `         local-data: 'note.example.com. IN TXT "v=spf1 ~all"'
+`
+
+	f, err := Parse([]byte(input))
+	if err != nil {
+		t.Fatalf("ayrıştırma hatası: %v", err)
+	}
+
+	if got := string(f.Bytes()); got != input {
+		t.Errorf("TXT round-trip bozuldu:\n%s", got)
 	}
 }
 

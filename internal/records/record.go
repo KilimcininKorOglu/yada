@@ -90,9 +90,24 @@ func (r Record) String() string {
 		class = DefaultClass
 	}
 
-	parts = append(parts, class, string(r.Type), r.Value)
+	parts = append(parts, class, string(r.Type), r.rdata())
 
 	return strings.Join(parts, " ")
+}
+
+// rdata renders the value as Unbound expects it on the wire format line.
+func (r Record) rdata() string {
+	// TXT data is a character-string and must be quoted, otherwise a value
+	// with spaces is read as several separate strings.
+	if r.Type == TypeTXT && !isQuoted(r.Value) {
+		return `"` + strings.ReplaceAll(r.Value, `"`, `\"`) + `"`
+	}
+
+	return r.Value
+}
+
+func isQuoted(s string) bool {
+	return len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"'
 }
 
 // Zone returns the parent zone of the record name, which is the name with its

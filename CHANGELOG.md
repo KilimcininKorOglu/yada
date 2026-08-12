@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.1] - 2026-08-12
+
+### Changed
+
+- The release body now leads with the CHANGELOG section for the tag, followed by the description of the published files.
+- The README rewritten: real artifact names and their checksum file, the full Linux build dependency list, the Docker requirement of the interface cross build, every command flag, the six interface tabs, the sudo the target servers need, and the version the binary reports.
+- Technical terms are kept in their own language across the Turkish documentation and test messages.
+- The CI cross-compile job no longer uploads artifacts; it exists to compile the platform specific code, and the published binaries come from the release workflow.
+- The file permission test is skipped on Windows, where Go reports `0666` for every file and the permission lives in an ACL.
+
+### Fixed
+
+- A cancelled remote command returns instead of waiting for the process `ssh` leaves behind. Output is collected through a pipe that this process keeps open, which on Linux held the caller until the command finished on its own.
+
 ## [1.0.0] - 2026-08-12
 
 First release. The PowerShell script that started the project is kept working

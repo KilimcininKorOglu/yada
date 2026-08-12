@@ -274,6 +274,15 @@ func (a *App) writeServerSetup(entered serverForm, scan sshsetup.Scan, trustHost
 			return err
 		}
 
+		// The configuration is built and validated before anything is written,
+		// because a server the file will not accept must not leave a key, a
+		// known_hosts entry and a Host block behind for a server that never
+		// appears in the application.
+		configPath, updated, err := a.prepareServerConfig(entered)
+		if err != nil {
+			return err
+		}
+
 		key, err := sshsetup.WriteKey(ctx, paths.Dir, entered.label(), entered.key)
 		if err != nil {
 			return err
@@ -303,9 +312,11 @@ func (a *App) writeServerSetup(entered serverForm, scan sshsetup.Scan, trustHost
 
 		a.log.addf("[%s] Host bloğu yazıldı: %s", entered.label(), paths.Config)
 
-		if err := a.appendServerToConfig(entered); err != nil {
+		if err := writeConfigFile(configPath, updated); err != nil {
 			return err
 		}
+
+		a.log.addf("Ayar dosyası güncellendi: %s", configPath)
 
 		return nil
 	}, func() {
@@ -333,39 +344,43 @@ func hostEntryFor(entered serverForm, keyPath string) sshsetup.HostEntry {
 	}
 }
 
-// appendServerToConfig adds the server to the configuration file, creating it
-// from the shipped example when there is none yet.
-func (a *App) appendServerToConfig(entered serverForm) error {
+// prepareServerConfig builds the configuration file that would hold the new
+// server, creating it from the shipped example when there is none yet. Nothing
+// is written; the caller decides when the result reaches the disk.
+func (a *App) prepareServerConfig(entered serverForm) (string, []byte, error) {
 	path, err := a.configTarget()
 	if err != nil {
-		return err
+		return "", nil, err
 	}
 
 	source, err := currentConfigSource(path)
 	if err != nil {
-		return err
+		return "", nil, err
 	}
 
 	updated, err := config.AddServer(source, entered.server())
 	if err != nil {
-		return err
+		return "", nil, err
 	}
 
 	// The same rule the settings editor follows: a file the application could
 	// not load afterwards never reaches the disk.
 	if _, err := config.Decode(updated); err != nil {
-		return fmt.Errorf("ayar dosyası geçersiz olurdu, yazılmadı: %w", err)
+		return "", nil, fmt.Errorf("ayar dosyası geçersiz olurdu, yazılmadı: %w", err)
 	}
 
+	return path, updated, nil
+}
+
+// writeConfigFile puts the prepared configuration in place.
+func writeConfigFile(path string, data []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("dizin oluşturulamadı: %w", err)
 	}
 
-	if err := os.WriteFile(path, updated, configFileMode); err != nil {
+	if err := os.WriteFile(path, data, configFileMode); err != nil {
 		return fmt.Errorf("ayar dosyası yazılamadı (%s): %w", path, err)
 	}
-
-	a.log.addf("Ayar dosyası güncellendi: %s", path)
 
 	return nil
 }

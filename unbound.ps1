@@ -59,12 +59,20 @@ function Add-UnboundRecord {
             $addText = "         local-zone: `"$rootDomain.`" transparent"
             $zoneCommand = "grep -qF '$searchText' $ConfigFile || echo '$addText' >> $ConfigFile"
             ssh "$Username@$Server" $zoneCommand
+            if ($LASTEXITCODE -ne 0) {
+                Write-ColorOutput "[$Server] Zone satırı eklenemedi (ssh çıkış kodu: $LASTEXITCODE)" $Red
+                return $false
+            }
         }
 
         # A kaydını ekle (9 space ile)
         $dataText = "         local-data: `"$Domain. IN A $IPAddress`""
         $recordCommand = "echo '$dataText' >> $ConfigFile"
         ssh "$Username@$Server" $recordCommand
+        if ($LASTEXITCODE -ne 0) {
+            Write-ColorOutput "[$Server] Kayıt eklenemedi (ssh çıkış kodu: $LASTEXITCODE)" $Red
+            return $false
+        }
 
         Write-ColorOutput "[$Server] Kayıt başarıyla eklendi" $Green
         return $true

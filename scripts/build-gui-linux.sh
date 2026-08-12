@@ -21,4 +21,4 @@ apt-get install -y -qq --no-install-recommends \
 cd /src
 
 go build -trimpath -ldflags "-X main.version=${VERSION}" \
-    -o "/out/unbound-dns-gui-linux-${TARGETARCH}" ./cmd/unbound-dns
+    -o "/out/yada-gui-linux-${TARGETARCH}" ./cmd/yada

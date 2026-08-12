@@ -8,8 +8,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/kerem/unbound-dns/internal/config"
-	"github.com/kerem/unbound-dns/internal/transport"
+	"github.com/kerem/yada/internal/config"
+	"github.com/kerem/yada/internal/transport"
 )
 
 // fakeRunner answers remote commands from a table keyed by a substring of the
@@ -115,12 +115,12 @@ func (f *fakeRunner) sawCommandContaining(needle string) bool {
 func healthyRunner() *fakeRunner {
 	return &fakeRunner{
 		replies: map[string]transport.Result{
-			"echo unbound-dns-ok": {Stdout: "unbound-dns-ok\n"},
-			"unbound -V":          {Stdout: "unbound 1.19.0\n"},
-			"is-active":           {Stdout: "active\n"},
-			"unbound-checkconf":   {Stdout: "no errors in /etc/unbound/unbound.conf\n"},
-			"unbound-control":     {Stdout: "version: 1.19.0\n"},
-			"CanReload":           {Stdout: "yes\n"},
+			"echo yada-ok":      {Stdout: "yada-ok\n"},
+			"unbound -V":        {Stdout: "unbound 1.19.0\n"},
+			"is-active":         {Stdout: "active\n"},
+			"unbound-checkconf": {Stdout: "no errors in /etc/unbound/unbound.conf\n"},
+			"unbound-control":   {Stdout: "version: 1.19.0\n"},
+			"CanReload":         {Stdout: "yes\n"},
 		},
 	}
 }

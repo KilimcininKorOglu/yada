@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kerem/unbound-dns/internal/ui"
+	"github.com/kerem/yada/internal/ui"
 )
 
 // runGUI opens the desktop window and blocks until it closes.

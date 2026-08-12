@@ -7,11 +7,11 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/kerem/unbound-dns/internal/config"
-	"github.com/kerem/unbound-dns/internal/diff"
-	"github.com/kerem/unbound-dns/internal/records"
-	"github.com/kerem/unbound-dns/internal/transport"
-	"github.com/kerem/unbound-dns/internal/unbound"
+	"github.com/kerem/yada/internal/config"
+	"github.com/kerem/yada/internal/diff"
+	"github.com/kerem/yada/internal/records"
+	"github.com/kerem/yada/internal/transport"
+	"github.com/kerem/yada/internal/unbound"
 	"github.com/spf13/cobra"
 )
 
@@ -134,7 +134,7 @@ func printDiff(comparison diff.Result) error {
 			}
 		}
 
-		fmt.Println("\nDoğru değeri seçtikten sonra: unbound-dns update <ad> --type <tip> --value <değer>")
+		fmt.Println("\nDoğru değeri seçtikten sonra: yada update <ad> --type <tip> --value <değer>")
 	}
 
 	return nil

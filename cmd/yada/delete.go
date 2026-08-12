@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kerem/unbound-dns/internal/config"
-	"github.com/kerem/unbound-dns/internal/records"
-	"github.com/kerem/unbound-dns/internal/transport"
-	"github.com/kerem/unbound-dns/internal/unbound"
+	"github.com/kerem/yada/internal/config"
+	"github.com/kerem/yada/internal/records"
+	"github.com/kerem/yada/internal/transport"
+	"github.com/kerem/yada/internal/unbound"
 	"github.com/spf13/cobra"
 )
 
@@ -25,9 +25,9 @@ func newDeleteCommand() *cobra.Command {
 		Short:   "Tüm sunuculardan bir kaydı siler",
 		Long: "Adı eşleşen kayıtları siler. --type ve --value ile daraltılabilir.\n" +
 			"Silme öncesi eşleşen kayıtlar listelenir ve onay istenir.",
-		Example: "  unbound-dns delete eski.google.com\n" +
-			"  unbound-dns delete mail.google.com --type A\n" +
-			"  unbound-dns delete mail.google.com --type A --value 10.10.10.10",
+		Example: "  yada delete eski.google.com\n" +
+			"  yada delete mail.google.com --type A\n" +
+			"  yada delete mail.google.com --type A --value 10.10.10.10",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true
@@ -226,8 +226,8 @@ func newUpdateCommand() *cobra.Command {
 		Short: "Var olan bir kaydın değerini değiştirir",
 		Long: "Kaydı yerinde günceller, dosyadaki sırasını korur.\n" +
 			"Kayıt yoksa hata verir; yeni kayıt için add kullanın.",
-		Example: "  unbound-dns update mail.google.com --type A --value 10.20.30.40\n" +
-			"  unbound-dns update mail.google.com --type A --value 10.20.30.40 --ttl 300",
+		Example: "  yada update mail.google.com --type A --value 10.20.30.40\n" +
+			"  yada update mail.google.com --type A --value 10.20.30.40 --ttl 300",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true
@@ -308,7 +308,7 @@ func reportUpdateResults(rec records.Record, results []unbound.WriteResult, dryR
 			// The record is missing on this server, which update cannot fix;
 			// say so plainly and point at the command that can.
 			failed++
-			fmt.Printf("[%s] BAŞARISIZ: %s (eklemek için: unbound-dns add)\n", label, res.Err)
+			fmt.Printf("[%s] BAŞARISIZ: %s (eklemek için: yada add)\n", label, res.Err)
 
 		case res.Err != nil:
 			failed++

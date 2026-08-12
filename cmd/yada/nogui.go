@@ -15,7 +15,7 @@ import (
 // without arguments and expects a window.
 func runGUI([]string) int {
 	fmt.Fprintln(os.Stderr, "Bu yapı arayüzsüz derlendi (nogui).")
-	fmt.Fprintln(os.Stderr, "Komutları listelemek için: unbound-dns --help")
+	fmt.Fprintln(os.Stderr, "Komutları listelemek için: yada --help")
 
 	return exitError
 }

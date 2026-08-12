@@ -1,11 +1,11 @@
-# unbound-dns ayar dosyası.
+# yada ayar dosyası.
 #
 # Bu dosya iki konumda aranır, ilk bulunan kullanılır:
 #   1. Çalışan uygulamanın bulunduğu dizin
 #   2. Kullanıcı ana dizini
 # --config <yol> bayrağı her ikisini de geçersiz kılar.
 #
-# Kullanmak için bu dosyayı unbound-dns.conf adıyla kopyalayın.
+# Kullanmak için bu dosyayı yada.conf adıyla kopyalayın.
 
 # Bağlanılacak Unbound sunucuları. En az bir tane zorunlu.
 servers:
@@ -71,4 +71,4 @@ log:
   # Dosya varsa üzerine eklenir, yoksa oluşturulur. Boş ise günlük yalnızca
   # pencerede tutulur ve pencere kapanınca kaybolur.
   # Komut satırı bu anahtardan etkilenmez, çıktısını her zaman ekrana verir.
-  file: ""                                       # örnek: /Users/adiniz/unbound-dns.log
+  file: ""                                       # örnek: /Users/adiniz/yada.log

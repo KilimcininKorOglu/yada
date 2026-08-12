@@ -15,7 +15,7 @@ fi
 
 mkdir -p keys
 
-ssh-keygen -t ed25519 -N '' -C 'unbound-dns test fixture' -f "$KEY" >/dev/null
+ssh-keygen -t ed25519 -N '' -C 'yada test fixture' -f "$KEY" >/dev/null
 
 chmod 0600 "$KEY"
 

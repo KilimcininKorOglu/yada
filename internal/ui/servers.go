@@ -10,7 +10,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/kerem/unbound-dns/internal/unbound"
+	"github.com/kerem/yada/internal/unbound"
 )
 
 // buildServersTab shows connectivity and, for each server, which refresh tier

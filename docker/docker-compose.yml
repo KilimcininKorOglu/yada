@@ -23,7 +23,7 @@ x-server: &server
 services:
   ns1:
     <<: *server
-    container_name: unbound-ps-ns1
+    container_name: yada-ns1
     environment:
       REMOTE_CONTROL: "yes"
     ports:
@@ -33,7 +33,7 @@ services:
 
   ns2:
     <<: *server
-    container_name: unbound-ps-ns2
+    container_name: yada-ns2
     environment:
       REMOTE_CONTROL: "yes"
     ports:
@@ -43,7 +43,7 @@ services:
 
   ns3:
     <<: *server
-    container_name: unbound-ps-ns3
+    container_name: yada-ns3
     environment:
       REMOTE_CONTROL: "no"
     ports:

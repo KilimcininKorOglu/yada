@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kerem/unbound-dns/internal/config"
+	"github.com/kerem/yada/internal/config"
 )
 
 // Result carries everything a remote command produced.
@@ -196,7 +196,7 @@ func WithSudo(srv config.Server, cmd string) string {
 // Ping checks that the server answers over ssh. BatchMode in the default
 // options keeps a password-protected host from blocking on a prompt.
 func Ping(ctx context.Context, r Runner, srv config.Server) error {
-	res, err := r.Run(ctx, srv, "echo unbound-dns-ok")
+	res, err := r.Run(ctx, srv, "echo yada-ok")
 	if err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ func Ping(ctx context.Context, r Runner, srv config.Server) error {
 		return res.Err()
 	}
 
-	if !strings.Contains(res.Stdout, "unbound-dns-ok") {
+	if !strings.Contains(res.Stdout, "yada-ok") {
 		return errors.New("sunucu beklenen yanıtı vermedi")
 	}
 

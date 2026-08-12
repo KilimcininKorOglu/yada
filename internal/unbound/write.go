@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kerem/unbound-dns/internal/config"
-	"github.com/kerem/unbound-dns/internal/records"
-	"github.com/kerem/unbound-dns/internal/transport"
+	"github.com/kerem/yada/internal/config"
+	"github.com/kerem/yada/internal/records"
+	"github.com/kerem/yada/internal/transport"
 )
 
 // BackupSuffix is appended to the records file path for the rollback copy.

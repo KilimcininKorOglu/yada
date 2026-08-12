@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kerem/unbound-dns/internal/config"
+	"github.com/kerem/yada/internal/config"
 )
 
 func TestBuildArgsPutsCommandLast(t *testing.T) {

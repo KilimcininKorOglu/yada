@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kerem/unbound-dns/internal/config"
-	"github.com/kerem/unbound-dns/internal/records"
-	"github.com/kerem/unbound-dns/internal/transport"
+	"github.com/kerem/yada/internal/config"
+	"github.com/kerem/yada/internal/records"
+	"github.com/kerem/yada/internal/transport"
 )
 
 // Tier identifies how the daemon was told to pick up the new config.

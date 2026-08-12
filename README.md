@@ -1,4 +1,4 @@
-# unbound-dns
+# yada
 
 Unbound DNS sunucularındaki yerel kayıtları SSH üzerinden yöneten komut satırı ve masaüstü uygulaması. Windows, Linux ve macOS üzerinde çalışır.
 
@@ -17,8 +17,8 @@ Bir veya birden fazla Unbound sunucusunda `local-zone` ve `local-data` kayıtlar
 Hazır binary yoksa kaynaktan derleyin. `go.mod` Go 1.26.5 ister.
 
 ```bash
-make build            # unbound-dns (arayüz + CLI, cgo gerekir)
-make build-cli        # unbound-dns-cli (yalnızca CLI, statik)
+make build            # yada (arayüz + CLI, cgo gerekir)
+make build-cli        # yada-cli (yalnızca CLI, statik)
 make cross-cli        # beş platform için statik CLI
 make cross-gui        # beş platform için arayüzlü yapı (tek makineden)
 ```
@@ -52,13 +52,13 @@ Kesintisiz yenileme kademeleri şunları ister:
 | `systemctl reload`                  | Kesinti yok, cache temizlenir                     | Unit dosyasında `ExecReload` tanımlı olmalı                                    |
 | `systemctl restart`                 | Kısa kesinti, cache temizlenir                    | Yok                                                                            |
 
-İlk kademe değişen kayıtları çalışan daemon'a doğrudan yazar; kalıcılık, önce yazılan kayıt dosyasından gelir. Yalnızca bir yazma işleminin ardından kullanılabilir, çünkü neyin değiştiğinin bilinmesi gerekir. Tek başına `unbound-dns reload` bunu bilemez ve bir alt kademeden başlar.
+İlk kademe değişen kayıtları çalışan daemon'a doğrudan yazar; kalıcılık, önce yazılan kayıt dosyasından gelir. Yalnızca bir yazma işleminin ardından kullanılabilir, çünkü neyin değiştiğinin bilinmesi gerekir. Tek başına `yada reload` bunu bilemez ve bir alt kademeden başlar.
 
-Hangi kademenin kullanılabildiğini `unbound-dns check` gösterir.
+Hangi kademenin kullanılabildiğini `yada check` gösterir.
 
 ## Ayar dosyası
 
-`unbound-dns.conf` iki konumda aranır, ilk bulunan kullanılır:
+`yada.conf` iki konumda aranır, ilk bulunan kullanılır:
 
 1. Çalışan uygulamanın bulunduğu dizin
 2. Kullanıcı ana dizini
@@ -66,7 +66,7 @@ Hangi kademenin kullanılabildiğini `unbound-dns check` gösterir.
 `--config <yol>` her ikisini de geçersiz kılar. Örnek dosyayı oluşturmak için:
 
 ```bash
-unbound-dns config init
+yada config init
 ```
 
 En küçük geçerli ayar:
@@ -84,7 +84,7 @@ defaults:
   main_config: /etc/unbound/unbound.conf
 ```
 
-Tüm anahtarların açıklaması proje kökündeki `unbound-dns.conf.example` dosyasındadır. Aynı dosya binary'nin içine gömülüdür, `config init` onu yazar.
+Tüm anahtarların açıklaması proje kökündeki `yada.conf.example` dosyasındadır. Aynı dosya binary'nin içine gömülüdür, `config init` onu yazar.
 
 `records_file`, `unbound.conf` içinden `include:` ile çağrılan dosyadır. `main_config` ise `unbound-checkconf` ile doğrulanan ana dosyadır. Kayıt dosyası tek başına doğrulanamaz, çünkü `include` onu `server:` bloğunun içine gömer ve fragment kendi başına geçerli bir config değildir.
 
@@ -93,36 +93,36 @@ Tüm anahtarların açıklaması proje kökündeki `unbound-dns.conf.example` do
 Argümansız çalıştırılınca masaüstü arayüzü açılır:
 
 ```bash
-unbound-dns                               # arayüz
-unbound-dns --config /yol/unbound-dns.conf  # arayüz, belirli bir ayar dosyasıyla
+yada                               # arayüz
+yada --config /yol/yada.conf  # arayüz, belirli bir ayar dosyasıyla
 ```
 
 Komut satırı için `-cli` verin. Bir alt komut yazıldığında `-cli` gerekmez, çünkü alt komut zaten komut satırını seçer:
 
 ```bash
-unbound-dns -cli check
-unbound-dns check                         # aynısı
+yada -cli check
+yada check                         # aynısı
 
-unbound-dns check                         # bağlantı ve config doğrulaması, değişiklik yapmaz
-unbound-dns list                          # kayıtları listele
-unbound-dns list --type A --filter google
+yada check                         # bağlantı ve config doğrulaması, değişiklik yapmaz
+yada list                          # kayıtları listele
+yada list --type A --filter google
 
-unbound-dns add mail.google.com A 10.10.10.10
-unbound-dns add web.local CNAME db.local. --ttl 3600
-unbound-dns add example.com MX "10 mail.example.com."
-unbound-dns add 10.10.10.10.in-addr.arpa PTR mail.google.com.
+yada add mail.google.com A 10.10.10.10
+yada add web.local CNAME db.local. --ttl 3600
+yada add example.com MX "10 mail.example.com."
+yada add 10.10.10.10.in-addr.arpa PTR mail.google.com.
 
-unbound-dns update mail.google.com --type A --value 10.20.30.40
-unbound-dns delete eski.google.com
+yada update mail.google.com --type A --value 10.20.30.40
+yada delete eski.google.com
 
-unbound-dns import kayitlar.csv
-unbound-dns export kayitlar.csv
+yada import kayitlar.csv
+yada export kayitlar.csv
 
-unbound-dns diff                          # sunucular arası fark
-unbound-dns sync --from ns1               # ns1'i referans alarak eşitle
-unbound-dns sync --from ns1 --prune       # fazladan kayıtları da sil
+yada diff                          # sunucular arası fark
+yada sync --from ns1               # ns1'i referans alarak eşitle
+yada sync --from ns1 --prune       # fazladan kayıtları da sil
 
-unbound-dns reload                        # yalnızca yenile
+yada reload                        # yalnızca yenile
 ```
 
 Genel bayraklar: `--config`, `--server` (tekrarlanabilir), `--json`, `--dry-run`, `--no-reload`, `--yes`.
@@ -145,7 +145,7 @@ Hatalı satırlar satır numarasıyla bildirilir ve atlanır, geçerli satırlar
 Proje kökündeki `kayitlar.csv` her kayıt tipinden örnek içerir. Uygulamadan önce ne olacağını görmek için:
 
 ```bash
-unbound-dns import kayitlar.csv --dry-run
+yada import kayitlar.csv --dry-run
 ```
 
 ## Yazma güvenliği
@@ -199,7 +199,7 @@ Doğrulamalar aracın çıktısına değil, resolver'ın verdiği yanıta bakar.
 ### Yapı
 
 ```
-cmd/unbound-dns/       giriş noktası, arayüz ve CLI arasında seçim yapar
+cmd/yada/       giriş noktası, arayüz ve CLI arasında seçim yapar
 internal/config/       ayar yükleme ve doğrulama
 internal/transport/    sistem ssh sarmalayıcı
 internal/records/      kayıt modeli, ayrıştırma, serileştirme

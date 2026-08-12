@@ -88,19 +88,19 @@ func TestSelectMode(t *testing.T) {
 }
 
 func TestGUIArgs(t *testing.T) {
-	path, err := guiArgs([]string{"--config", "/etc/unbound-dns.conf"})
+	path, err := guiArgs([]string{"--config", "/etc/yada.conf"})
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
-	if path != "/etc/unbound-dns.conf" {
+	if path != "/etc/yada.conf" {
 		t.Errorf("ayar yolu = %q", path)
 	}
 
-	path, err = guiArgs([]string{"--config=/etc/unbound-dns.conf"})
+	path, err = guiArgs([]string{"--config=/etc/yada.conf"})
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
-	if path != "/etc/unbound-dns.conf" {
+	if path != "/etc/yada.conf" {
 		t.Errorf("eşittirli biçim okunamadı, ayar yolu = %q", path)
 	}
 

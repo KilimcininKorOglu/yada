@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kerem/unbound-dns/internal/config"
-	"github.com/kerem/unbound-dns/internal/records"
-	"github.com/kerem/unbound-dns/internal/transport"
-	"github.com/kerem/unbound-dns/internal/unbound"
+	"github.com/kerem/yada/internal/config"
+	"github.com/kerem/yada/internal/records"
+	"github.com/kerem/yada/internal/transport"
+	"github.com/kerem/yada/internal/unbound"
 	"github.com/spf13/cobra"
 )
 
@@ -23,10 +23,10 @@ func newAddCommand() *cobra.Command {
 			"unbound-checkconf ile doğrular ve doğrulama başarısız olursa\n" +
 			"dosyayı yedekten geri yükler.\n\n" +
 			"Üst zone tanımlı değilse transparent olarak eklenir.",
-		Example: "  unbound-dns add mail.google.com A 10.10.10.10\n" +
-			"  unbound-dns add web.local CNAME db.local. --ttl 3600\n" +
-			"  unbound-dns add example.com MX \"10 mail.example.com.\"\n" +
-			"  unbound-dns add 10.10.10.10.in-addr.arpa PTR mail.google.com.",
+		Example: "  yada add mail.google.com A 10.10.10.10\n" +
+			"  yada add web.local CNAME db.local. --ttl 3600\n" +
+			"  yada add example.com MX \"10 mail.example.com.\"\n" +
+			"  yada add 10.10.10.10.in-addr.arpa PTR mail.google.com.",
 		Args: cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true
@@ -92,7 +92,7 @@ func refreshChanged(ctx context.Context, runner transport.Runner, cfg config.Con
 	}
 
 	if flags.noReload {
-		fmt.Println("\nYenileme atlandı (--no-reload). Devreye almak için: unbound-dns reload")
+		fmt.Println("\nYenileme atlandı (--no-reload). Devreye almak için: yada reload")
 		return nil
 	}
 

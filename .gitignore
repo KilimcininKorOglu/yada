@@ -4,7 +4,7 @@ dist/
 
 # The real configuration may hold host names and user names for internal
 # infrastructure; only the example is tracked.
-unbound-dns.conf
+yada.conf
 
 # Fyne bundles a large binary; builds stay out of the repository.
 *.syso
@@ -13,4 +13,4 @@ unbound-dns.conf
 docker/keys/
 
 # Log written by the desktop interface during manual testing.
-docker/unbound-dns.log
+docker/yada.log

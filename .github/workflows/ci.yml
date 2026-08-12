@@ -111,7 +111,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: unbound-dns-cli
+          name: yada-cli
           path: dist/
           retention-days: 7
 
@@ -140,7 +140,7 @@ jobs:
             libwayland-dev wayland-protocols libxkbcommon-dev libdecor-0-dev
 
       - name: Build
-        run: go build -trimpath -o dist/ ./cmd/unbound-dns
+        run: go build -trimpath -o dist/ ./cmd/yada
 
       # The interface package is excluded from the nogui test run, so this is
       # the only place its tests execute. They use the Fyne test app and need

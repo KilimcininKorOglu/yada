@@ -1,4 +1,4 @@
-// Package config loads and validates the unbound-dns.conf file.
+// Package config loads and validates the yada.conf file.
 package config
 
 import (
@@ -7,16 +7,16 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	unbounddns "github.com/kerem/unbound-dns"
+	"github.com/kerem/yada"
 )
 
 // FileName is the fixed name looked up next to the executable and in the home
 // directory.
-const FileName = "unbound-dns.conf"
+const FileName = "yada.conf"
 
 // Example is the commented starter configuration, embedded at the repository
 // root so the file stays visible there rather than buried in this package.
-var Example = unbounddns.ConfExample
+var Example = yada.ConfExample
 
 // ReloadStrategy selects which refresh tiers are attempted after a write.
 type ReloadStrategy string

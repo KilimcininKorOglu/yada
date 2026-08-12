@@ -70,8 +70,8 @@ jobs:
         run: |
           version="${{ inputs.version || github.ref_name }}"
           go build -trimpath -ldflags "-X main.version=$version" \
-            -o "dist/unbound-dns-gui-${{ matrix.suffix }}${{ matrix.ext }}" \
-            ./cmd/unbound-dns
+            -o "dist/yada-gui-${{ matrix.suffix }}${{ matrix.ext }}" \
+            ./cmd/yada
 
       - uses: actions/upload-artifact@v7
         with:
@@ -101,10 +101,10 @@ jobs:
       - name: Write the release notes
         run: |
           cat > notes.md <<'MARKDOWN'
-          `unbound-dns-<os>-<arch>` dosyaları statik komut satırı yapılarıdır.
+          `yada-<os>-<arch>` dosyaları statik komut satırı yapılarıdır.
           Çalışma zamanı bağımlılığı yoktur ve arayüz içermezler.
 
-          `unbound-dns-gui-<os>-<arch>` dosyaları arayüzü de içerir. Argümansız
+          `yada-gui-<os>-<arch>` dosyaları arayüzü de içerir. Argümansız
           çalıştırıldığında pencereyi açar, `-cli` ile komut satırına geçer.
 
           Bütünlük doğrulaması için `SHA256SUMS`.

@@ -40,7 +40,7 @@ func newTestApp(t *testing.T, configPath string) *App {
 }
 
 func TestSaveSettingsWritesAndLoads(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "unbound-dns.conf")
+	path := filepath.Join(t.TempDir(), "yada.conf")
 
 	a := newTestApp(t, path)
 	status := widget.NewLabel("")
@@ -68,7 +68,7 @@ func TestSaveSettingsWritesAndLoads(t *testing.T) {
 // A file the application can no longer load is worse than a rejected save, so
 // invalid content must never reach the disk.
 func TestSaveSettingsRefusesInvalidContent(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "unbound-dns.conf")
+	path := filepath.Join(t.TempDir(), "yada.conf")
 
 	if err := os.WriteFile(path, []byte(validConfig), configFileMode); err != nil {
 		t.Fatalf("hazırlık yazması başarısız: %v", err)
@@ -100,7 +100,7 @@ func TestSaveSettingsRefusesInvalidContent(t *testing.T) {
 }
 
 func TestSaveSettingsCreatesMissingDirectory(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "alt", "dizin", "unbound-dns.conf")
+	path := filepath.Join(t.TempDir(), "alt", "dizin", "yada.conf")
 
 	a := newTestApp(t, path)
 	status := widget.NewLabel("")
@@ -115,7 +115,7 @@ func TestSaveSettingsCreatesMissingDirectory(t *testing.T) {
 // The file names the servers and the account used to reach them, so it must
 // not be world readable.
 func TestSaveSettingsKeepsTheFilePrivate(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "unbound-dns.conf")
+	path := filepath.Join(t.TempDir(), "yada.conf")
 
 	a := newTestApp(t, path)
 	a.saveSettings(validConfig, widget.NewLabel(""), nil)
@@ -148,7 +148,7 @@ func TestLogPanelWritesToFile(t *testing.T) {
 	fyneApp := test.NewApp()
 	t.Cleanup(fyneApp.Quit)
 
-	path := filepath.Join(t.TempDir(), "gunluk", "unbound-dns.log")
+	path := filepath.Join(t.TempDir(), "gunluk", "yada.log")
 
 	panel := newLogPanel()
 	t.Cleanup(panel.close)
@@ -188,7 +188,7 @@ func TestLogPanelClearLeavesTheFileIntact(t *testing.T) {
 	fyneApp := test.NewApp()
 	t.Cleanup(fyneApp.Quit)
 
-	path := filepath.Join(t.TempDir(), "unbound-dns.log")
+	path := filepath.Join(t.TempDir(), "yada.log")
 
 	panel := newLogPanel()
 	t.Cleanup(panel.close)

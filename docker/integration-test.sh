@@ -8,8 +8,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-CLI=${CLI:-dist/unbound-dns-cli}
-CONFIG=docker/unbound-dns.docker.conf
+CLI=${CLI:-dist/yada-cli}
+CONFIG=docker/yada.docker.conf
 COMPOSE="docker compose -f docker/docker-compose.yml"
 
 failures=0
@@ -158,14 +158,14 @@ cli delete mail.example.test --yes >/dev/null 2>&1 || fail "TXT kaydı silinemed
 expect_empty ns1 mail.example.test TXT
 
 begin "import: CSV toplu yükleme"
-cat > /tmp/unbound-dns-test.csv <<'EOF'
+cat > /tmp/yada-test.csv <<'EOF'
 name,type,value,ttl
 web.example.test,A,10.30.30.30,3600
 alias.example.test,CNAME,web.example.test.,
 ipv6.example.test,AAAA,2001:db8::1,
 EOF
 
-out=$(cli import /tmp/unbound-dns-test.csv 2>&1) || fail "import başarısız"
+out=$(cli import /tmp/yada-test.csv 2>&1) || fail "import başarısız"
 expect_contains "$out" "3 kayıt uygulanacak" "üç satır okundu"
 
 expect_resolves ns1 web.example.test A 10.30.30.30
@@ -173,8 +173,8 @@ expect_resolves ns2 ipv6.example.test AAAA 2001:db8::1
 expect_resolves ns3 alias.example.test CNAME web.example.test.
 
 begin "export: dışa aktarılan dosya geri yüklenebilir"
-cli export /tmp/unbound-dns-export.csv >/dev/null 2>&1 || fail "export başarısız"
-expect_contains "$(cat /tmp/unbound-dns-export.csv)" "web.example.test" "dışa aktarımda kayıt var"
+cli export /tmp/yada-export.csv >/dev/null 2>&1 || fail "export başarısız"
+expect_contains "$(cat /tmp/yada-export.csv)" "web.example.test" "dışa aktarımda kayıt var"
 
 begin "diff ve sync: tek sunucudaki fazladan kayıt yayılıyor"
 cli --server ns1 add only-on-ns1.example.test A 10.40.40.40 >/dev/null 2>&1 || fail "tek sunucuya ekleme başarısız"

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kerem/unbound-dns/internal/config"
-	"github.com/kerem/unbound-dns/internal/transport"
+	"github.com/kerem/yada/internal/config"
+	"github.com/kerem/yada/internal/transport"
 )
 
 // Status is the outcome of inspecting one server.

@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kerem/unbound-dns/internal/config"
+	"github.com/kerem/yada/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -50,7 +50,7 @@ func newConfigInitCommand() *cobra.Command {
 			}
 
 			fmt.Printf("Ayar dosyası oluşturuldu: %s\n", path)
-			fmt.Println("Sunucu adreslerini ve kullanıcı adını düzenleyin, sonra: unbound-dns check")
+			fmt.Println("Sunucu adreslerini ve kullanıcı adını düzenleyin, sonra: yada check")
 
 			return nil
 		},

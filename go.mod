@@ -1,4 +1,4 @@
-module github.com/kerem/unbound-dns
+module github.com/kerem/yada
 
 go 1.26.5
 

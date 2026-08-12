@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kerem/unbound-dns/internal/config"
-	"github.com/kerem/unbound-dns/internal/transport"
-	"github.com/kerem/unbound-dns/internal/unbound"
+	"github.com/kerem/yada/internal/config"
+	"github.com/kerem/yada/internal/transport"
+	"github.com/kerem/yada/internal/unbound"
 	"github.com/spf13/cobra"
 )
 

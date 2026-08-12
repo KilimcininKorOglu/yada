@@ -16,8 +16,8 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/kerem/unbound-dns/internal/config"
-	"github.com/kerem/unbound-dns/internal/transport"
+	"github.com/kerem/yada/internal/config"
+	"github.com/kerem/yada/internal/transport"
 )
 
 // App holds everything the screens share.
@@ -44,11 +44,11 @@ type App struct {
 // the usual search order in place.
 func Run(version, configPath string) {
 	a := &App{
-		fyne:       app.NewWithID("dev.kerem.unbound-dns"),
+		fyne:       app.NewWithID("dev.kerem.yada"),
 		configPath: configPath,
 	}
 
-	a.window = a.fyne.NewWindow("Unbound DNS Yöneticisi " + version)
+	a.window = a.fyne.NewWindow("Yada - Unbound DNS Yöneticisi " + version)
 	a.window.Resize(fyne.NewSize(1100, 700))
 
 	a.log = newLogPanel()

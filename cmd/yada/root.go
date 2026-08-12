@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kerem/unbound-dns/internal/config"
+	"github.com/kerem/yada/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -34,9 +34,9 @@ var flags globalFlags
 
 func newRootCommand() *cobra.Command {
 	root := &cobra.Command{
-		Use:   "unbound-dns",
+		Use:   "yada",
 		Short: "Unbound DNS sunucularındaki yerel kayıtları yönetir",
-		Long: "unbound-dns, bir veya birden fazla Unbound sunucusundaki yerel DNS\n" +
+		Long: "yada, bir veya birden fazla Unbound sunucusundaki yerel DNS\n" +
 			"kayıtlarını SSH üzerinden yönetir.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -146,7 +146,7 @@ func reportConfigError(err error) int {
 		for _, dir := range config.SearchDirs() {
 			fmt.Fprintf(os.Stderr, "  %s\n", filepath.Join(dir, config.FileName))
 		}
-		fmt.Fprintln(os.Stderr, "\nÖrnek dosyayı kopyalamak için: unbound-dns config init")
+		fmt.Fprintln(os.Stderr, "\nÖrnek dosyayı kopyalamak için: yada config init")
 	}
 
 	return exitConfigError

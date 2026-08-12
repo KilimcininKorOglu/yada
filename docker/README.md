@@ -16,11 +16,11 @@ make docker-logs
 Elle komut çalıştırmak için:
 
 ```bash
-dist/unbound-dns-cli --config docker/unbound-dns.docker.conf check
-dist/unbound-dns-cli --config docker/unbound-dns.docker.conf add a.example.test A 10.1.2.3
+dist/yada-cli --config docker/yada.docker.conf check
+dist/yada-cli --config docker/yada.docker.conf add a.example.test A 10.1.2.3
 ```
 
-Ayar dosyası `--config` ile açıkça verilir. Otomatik aramaya bırakılsaydı gerçek bir `unbound-dns.conf` dosyasını gölgeleyebilirdi.
+Ayar dosyası `--config` ile açıkça verilir. Otomatik aramaya bırakılsaydı gerçek bir `yada.conf` dosyasını gölgeleyebilirdi.
 
 ## Sunucular
 

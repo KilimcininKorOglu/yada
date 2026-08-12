@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kerem/unbound-dns/internal/transport"
+	"github.com/kerem/yada/internal/transport"
 )
 
 const sampleRecords = `# Yerel kayıtlar

@@ -10,7 +10,7 @@ Bu kararlar plan yazılmadan önce onaylandı.
 |---------------|-------------------------------------------------------------------------------|
 | GUI           | Fyne                                                                          |
 | SSH           | Sistem `ssh` binary'si, `os/exec` ile                                         |
-| Ayar formatı  | YAML, dosya adı `unbound-dns.conf`                                            |
+| Ayar formatı  | YAML, dosya adı `yada.conf`                                            |
 | Ayar önceliği | Önce uygulamanın yanı, sonra kullanıcı dizini                                 |
 | Kapsam        | Listeleme, silme, A dışı kayıt tipleri, CSV toplu işlem, sunucular arası fark |
 | Platformlar   | Windows, Linux, macOS                                                         |
@@ -21,22 +21,22 @@ Bu kararlar plan yazılmadan önce onaylandı.
 
 | Binary            | Bağımlılık              | Kullanım                                                                        |
 |-------------------|-------------------------|---------------------------------------------------------------------------------|
-| `unbound-dns`     | Saf Go, `CGO_ENABLED=0` | CLI. Her platforma tek komutla cross-compile edilir, sunuculara kopyalanabilir. |
-| `unbound-dns-gui` | Fyne, CGO               | Masaüstü arayüzü. Platform başına ayrı derlenir.                                |
+| `yada`     | Saf Go, `CGO_ENABLED=0` | CLI. Her platforma tek komutla cross-compile edilir, sunuculara kopyalanabilir. |
+| `yada-gui` | Fyne, CGO               | Masaüstü arayüzü. Platform başına ayrı derlenir.                                |
 
 Ortak mantığın tamamı `internal/` altında toplanır. GUI, CLI'ın kullandığı paketleri çağırır, iş mantığını tekrarlamaz.
 
-Tek binary tercih edilirse `cmd/unbound-dns/gui.go` dosyasına `//go:build gui` etiketi konarak `make build-single` hedefiyle üretilebilir. Plan iki binary üzerine kuruludur.
+Tek binary tercih edilirse `cmd/yada/gui.go` dosyasına `//go:build gui` etiketi konarak `make build-single` hedefiyle üretilebilir. Plan iki binary üzerine kuruludur.
 
 ## 3. Dizin yapısı
 
 ```
-unbound-dns/
+yada/
 ├── cmd/
-│   ├── unbound-dns/            # CLI giriş noktası (cobra)
-│   └── unbound-dns-gui/        # Fyne giriş noktası
+│   ├── yada/            # CLI giriş noktası (cobra)
+│   └── yada-gui/        # Fyne giriş noktası
 ├── internal/
-│   ├── config/                 # unbound-dns.conf yükleme, arama sırası, doğrulama
+│   ├── config/                 # yada.conf yükleme, arama sırası, doğrulama
 │   ├── transport/              # sistem ssh sarmalayıcı, komut çalıştırma
 │   ├── records/                # RR modeli, ayrıştırma, serileştirme, doğrulama
 │   ├── unbound/                # checkconf, üç kademeli yenileme, dosya yazma
@@ -46,7 +46,7 @@ unbound-dns/
 ├── testdata/                   # örnek local_records.conf, CSV örnekleri
 ├── Makefile
 ├── go.mod
-├── unbound-dns.conf.example
+├── yada.conf.example
 └── README.md
 ```
 
@@ -54,14 +54,14 @@ unbound-dns/
 
 ### 4.1 Arama sırası
 
-1. Çalışan binary'nin bulunduğu dizin: `<exe_dir>/unbound-dns.conf`
-2. Kullanıcı ana dizini: `<home>/unbound-dns.conf`
+1. Çalışan binary'nin bulunduğu dizin: `<exe_dir>/yada.conf`
+2. Kullanıcı ana dizini: `<home>/yada.conf`
 
 İlk bulunan kullanılır, dosyalar birleştirilmez. `--config <yol>` bayrağı her ikisini de geçersiz kılar.
 
 Binary dizini `os.Executable()` ile bulunur ve `filepath.EvalSymlinks` ile çözülür, aksi halde symlink üzerinden çalıştırıldığında yanlış dizine bakılır.
 
-Hiçbir dosya bulunamazsa uygulama hata verip durur. CLI'da `unbound-dns config init` komutu, GUI'da ilk açılış sihirbazı örnek dosyayı oluşturur.
+Hiçbir dosya bulunamazsa uygulama hata verip durur. CLI'da `yada config init` komutu, GUI'da ilk açılış sihirbazı örnek dosyayı oluşturur.
 
 ### 4.2 Şema
 
@@ -245,22 +245,22 @@ Bir sunucudaki başarısızlık diğerlerini durdurmaz. Her sunucunun sonucu ayr
 `cobra` kullanılır. Tüm komutlar `--config`, `--server` (yalnızca belirtilen sunucuya uygula, tekrarlanabilir), `--json` (makine okunur çıktı) ve `--dry-run` bayraklarını destekler.
 
 ```
-unbound-dns config init                       # örnek ayar dosyası oluştur
-unbound-dns config show                       # etkin ayarı ve hangi dosyadan okunduğunu göster
-unbound-dns check                             # bağlantı + unbound-checkconf, hiçbir şey değiştirmez
+yada config init                       # örnek ayar dosyası oluştur
+yada config show                       # etkin ayarı ve hangi dosyadan okunduğunu göster
+yada check                             # bağlantı + unbound-checkconf, hiçbir şey değiştirmez
 
-unbound-dns list [--type A] [--filter google] # kayıtları tablo veya JSON olarak listele
-unbound-dns add <ad> <tip> <değer> [--ttl 3600]
-unbound-dns delete <ad> [--type A] [--value 10.10.10.10]
-unbound-dns update <ad> --type A --value <yeni-ip>
+yada list [--type A] [--filter google] # kayıtları tablo veya JSON olarak listele
+yada add <ad> <tip> <değer> [--ttl 3600]
+yada delete <ad> [--type A] [--value 10.10.10.10]
+yada update <ad> --type A --value <yeni-ip>
 
-unbound-dns import <dosya.csv> [--replace]    # toplu ekleme
-unbound-dns export <dosya.csv> [--type A]     # toplu dışa aktarma
+yada import <dosya.csv> [--replace]    # toplu ekleme
+yada export <dosya.csv> [--type A]     # toplu dışa aktarma
 
-unbound-dns diff                              # sunucular arası fark
-unbound-dns sync --from ns1 [--dry-run]       # kaynak sunucuyu referans alarak eşitle
+yada diff                              # sunucular arası fark
+yada sync --from ns1 [--dry-run]       # kaynak sunucuyu referans alarak eşitle
 
-unbound-dns reload                            # sadece yenileme, kayıt değiştirmez
+yada reload                            # sadece yenileme, kayıt değiştirmez
 ```
 
 `--dry-run` yazma yapmaz, yalnızca üretilecek dosya farkını gösterir. `confirm_destructive` açıkken `delete` ve `sync` onay ister; `--yes` bayrağı onayı atlar ve otomasyonu mümkün kılar.
@@ -346,7 +346,7 @@ Platform notları:
 - **Windows GUI:** `-ldflags -H=windowsgui` ile konsol penceresi gizlenir. CLI'da bu bayrak kullanılmaz.
 - **macOS GUI:** `.app` paketi `fyne package` ile üretilir. İmzasız dağıtımda Gatekeeper uyarısı çıkar, dağıtım şekli sonradan kararlaştırılabilir.
 
-Sürüm bilgisi `-ldflags "-X main.version=..."` ile gömülür, `unbound-dns version` komutuyla gösterilir.
+Sürüm bilgisi `-ldflags "-X main.version=..."` ile gömülür, `yada version` komutuyla gösterilir.
 
 ## 15. Uygulama sırası
 
@@ -357,7 +357,7 @@ Her aşama kendi içinde çalışır durumda bitirilir ve ayrı ayrı commit edi
 | Aşama | İçerik                                                | Biterken doğrulanan                                                       |
 |-------|-------------------------------------------------------|---------------------------------------------------------------------------|
 | 1     | Proje iskeleti, `go.mod`, Makefile, `internal/config` | Ayar dosyası iki konumdan da yükleniyor, eksik alanlar raporlanıyor       |
-| 2     | `internal/transport`, `unbound-dns check`             | Sahte `ssh` ile bağlantı testi ve hata kodları doğru raporlanıyor         |
+| 2     | `internal/transport`, `yada check`             | Sahte `ssh` ile bağlantı testi ve hata kodları doğru raporlanıyor         |
 | 3     | `internal/records` ayrıştırma ve serileştirme, `list` | Round-trip testi geçiyor, yorumlar korunuyor                              |
 | 4     | Yazma akışı, `add`, checkconf, geri alma              | Bozuk config yazıldığında dosya eski haline dönüyor                       |
 | 5     | Üç kademeli yenileme, `reload`                        | Üç senaryo (control yok, reload yok, ikisi de yok) doğru kademeye düşüyor |

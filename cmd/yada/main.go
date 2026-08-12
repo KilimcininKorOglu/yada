@@ -1,4 +1,4 @@
-// Command unbound-dns manages local DNS records on Unbound servers over SSH.
+// Command yada manages local DNS records on Unbound servers over SSH.
 //
 // It opens the desktop interface by default. Pass -cli, or any subcommand, to
 // use the command line instead.
@@ -92,7 +92,7 @@ func guiArgs(args []string) (configPath string, err error) {
 			}
 
 			return "", fmt.Errorf(
-				"arayüz %q seçeneğini tanımıyor (arayüz yalnızca --config alır, komutlar için: unbound-dns -cli --help)",
+				"arayüz %q seçeneğini tanımıyor (arayüz yalnızca --config alır, komutlar için: yada -cli --help)",
 				args[i])
 		}
 	}

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kerem/unbound-dns/internal/config"
-	"github.com/kerem/unbound-dns/internal/transport"
+	"github.com/kerem/yada/internal/config"
+	"github.com/kerem/yada/internal/transport"
 )
 
 // shortenPolling makes restart cases finish quickly instead of waiting the

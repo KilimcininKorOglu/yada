@@ -2,6 +2,7 @@
 package config
 
 import (
+	_ "embed"
 	"fmt"
 	"time"
 
@@ -11,6 +12,13 @@ import (
 // FileName is the fixed name looked up next to the executable and in the home
 // directory.
 const FileName = "unbound-dns.conf"
+
+// Example is the commented starter configuration. It is embedded so a binary
+// copied anywhere can still write a usable file, and it doubles as the
+// documentation of every available key.
+//
+//go:embed unbound-dns.conf.example
+var Example []byte
 
 // ReloadStrategy selects which refresh tiers are attempted after a write.
 type ReloadStrategy string

@@ -327,6 +327,26 @@ func TestLoadRecordsSourcePath(t *testing.T) {
 	}
 }
 
+// The embedded example is what config init writes, so a mistake in it would
+// hand the user a file that fails to load on their first run.
+func TestEmbeddedExampleIsValid(t *testing.T) {
+	cfg, err := Decode(Example)
+	if err != nil {
+		t.Fatalf("gömülü örnek ayar geçersiz: %v", err)
+	}
+
+	if len(cfg.Servers) == 0 {
+		t.Error("örnek ayarda sunucu tanımı yok")
+	}
+
+	// The example documents every key, so it must also survive KnownFields.
+	for _, srv := range cfg.Servers {
+		if srv.RecordsFile == "" || srv.MainConfig == "" {
+			t.Errorf("%s: örnek ayarda dosya yolları eksik", srv.Label())
+		}
+	}
+}
+
 func writeConfig(t *testing.T, dir string) {
 	t.Helper()
 

@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Sürüm etiketi (örnek: v1.0.0)"
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: "1.26.5"
+
+jobs:
+  cli:
+    name: Static CLI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      # The version is passed in rather than derived from git describe, which
+      # would need the full tag history fetched just to name a file.
+      - name: Cross-compile
+        run: make cross-cli VERSION="${{ inputs.version || github.ref_name }}"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist-cli
+          path: dist/
+
+  gui:
+    name: Interface (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            suffix: linux-amd64
+          - os: macos-latest
+            suffix: darwin-arm64
+          - os: windows-latest
+            suffix: windows-amd64
+            ext: ".exe"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install the GUI build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1-mesa-dev xorg-dev libxkbcommon-dev
+
+      - name: Build
+        shell: bash
+        run: |
+          version="${{ inputs.version || github.ref_name }}"
+          go build -trimpath -ldflags "-X main.version=$version" \
+            -o "dist/unbound-dns-gui-${{ matrix.suffix }}${{ matrix.ext }}" \
+            ./cmd/unbound-dns
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist-gui-${{ matrix.suffix }}
+          path: dist/
+
+  publish:
+    name: Publish
+    needs: [cli, gui]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: artifacts
+        run: sha256sum * > SHA256SUMS
+
+      # Written as a file rather than inlined, so the backticks and newlines
+      # never pass through a shell.
+      - name: Write the release notes
+        run: |
+          cat > notes.md <<'MARKDOWN'
+          `unbound-dns-<os>-<arch>` dosyaları statik komut satırı yapılarıdır.
+          Çalışma zamanı bağımlılığı yoktur ve arayüz içermezler.
+
+          `unbound-dns-gui-<os>-<arch>` dosyaları arayüzü de içerir. Argümansız
+          çalıştırıldığında pencereyi açar, `-cli` ile komut satırına geçer.
+
+          Bütünlük doğrulaması için `SHA256SUMS`.
+
+          Kurulum ve kullanım için README dosyasına bakın.
+          MARKDOWN
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${{ inputs.version || github.ref_name }}"
+
+          gh release create "$version" \
+            --title "$version" \
+            --notes-file notes.md \
+            artifacts/*

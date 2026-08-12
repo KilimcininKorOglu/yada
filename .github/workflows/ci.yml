@@ -1,0 +1,169 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A new push makes an in-flight run of the same ref pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: "1.26.5"
+
+jobs:
+  # The GUI needs cgo and OpenGL headers, so it is built separately from the
+  # tests that only need the business logic.
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Check formatting
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "gofmt uygulanmamış dosyalar:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Verify go.mod is tidy
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+      - name: Vet
+        run: CGO_ENABLED=0 go vet -tags nogui ./...
+
+      # -count=1 disables the test cache, so a green run means the tests
+      # actually executed.
+      - name: Test
+        run: CGO_ENABLED=0 go test -count=1 -tags nogui ./...
+
+      - name: Test with the race detector
+        run: go test -count=1 -race -tags nogui ./...
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install the GUI build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1-mesa-dev xorg-dev libxkbcommon-dev
+
+      # Both build variants are linted: the nogui tag hides whole files, so a
+      # problem in one of them would otherwise go unseen.
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          args: --timeout 5m ./...
+
+      - name: Lint the nogui build
+        run: golangci-lint run --timeout 5m --build-tags nogui ./...
+
+  vuln:
+    name: Vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          CGO_ENABLED=0 govulncheck -tags nogui ./...
+
+  build-cli:
+    name: Build the static CLI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cross-compile
+        run: make cross-cli
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: unbound-dns-cli
+          path: dist/
+          retention-days: 7
+
+  # The full binary links Fyne, so it cannot be cross-compiled and has to be
+  # built on each target.
+  build-gui:
+    name: Build with the interface
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install the GUI build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1-mesa-dev xorg-dev libxkbcommon-dev
+
+      - name: Build
+        run: go build -trimpath -o dist/ ./cmd/unbound-dns
+
+  # The only job that proves the tool does anything to a running resolver.
+  integration:
+    name: Integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build the CLI
+        run: make build-cli
+
+      - name: Start the test servers
+        run: make docker-up
+
+      - name: Run the scenario
+        run: docker/integration-test.sh
+
+      - name: Show the server logs on failure
+        if: failure()
+        run: docker compose -f docker/docker-compose.yml logs --tail 100
+
+      - name: Tear down
+        if: always()
+        run: make docker-down

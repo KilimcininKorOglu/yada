@@ -10,11 +10,11 @@ Bir veya birden fazla Unbound sunucusunda `local-zone` ve `local-data` kayıtlar
 - CSV ile toplu içe ve dışa aktarma
 - Sunucular arası fark gösterme ve eşitleme
 - Yazmadan önce `unbound-checkconf` ile doğrulama, başarısızlıkta yedekten geri alma
-- Kesintisiz yenileme: `unbound-control reload_keep_cache`, olmazsa `systemctl reload`, o da olmazsa `systemctl restart`
+- Kesintisiz yenileme: değişen kayıtları çalışan daemon'a `unbound-control local_data` ile yazar, olmazsa sırayla `reload_keep_cache`, `systemctl reload` ve `systemctl restart` dener
 
 ## Kurulum
 
-Hazır binary yoksa kaynaktan derleyin. Go 1.24 veya üstü gerekir.
+Hazır binary yoksa kaynaktan derleyin. `go.mod` Go 1.26.5 ister.
 
 ```bash
 make build            # unbound-dns (arayüz + CLI, cgo gerekir)
@@ -36,12 +36,12 @@ Sistem `ssh` binary'si kullanılır, dolayısıyla `~/.ssh/config` dosyanız, ss
 
 Kesintisiz yenileme kademeleri şunları ister:
 
-| Kademe | Maliyet | Gereksinim |
-|---|---|---|
-| `unbound-control local_data` | Kesinti yok, config okunmaz, cache korunur | `remote-control: control-enable: yes` ve `unbound-control-setup` sertifikaları |
-| `unbound-control reload_keep_cache` | Kesinti yok, config yeniden okunur, cache korunur | Aynısı |
-| `systemctl reload` | Kesinti yok, cache temizlenir | Unit dosyasında `ExecReload` tanımlı olmalı |
-| `systemctl restart` | Kısa kesinti, cache temizlenir | Yok |
+| Kademe                              | Maliyet                                           | Gereksinim                                                                     |
+|-------------------------------------|---------------------------------------------------|--------------------------------------------------------------------------------|
+| `unbound-control local_data`        | Kesinti yok, config okunmaz, cache korunur        | `remote-control: control-enable: yes` ve `unbound-control-setup` sertifikaları |
+| `unbound-control reload_keep_cache` | Kesinti yok, config yeniden okunur, cache korunur | Aynısı                                                                         |
+| `systemctl reload`                  | Kesinti yok, cache temizlenir                     | Unit dosyasında `ExecReload` tanımlı olmalı                                    |
+| `systemctl restart`                 | Kısa kesinti, cache temizlenir                    | Yok                                                                            |
 
 İlk kademe değişen kayıtları çalışan daemon'a doğrudan yazar; kalıcılık, önce yazılan kayıt dosyasından gelir. Yalnızca bir yazma işleminin ardından kullanılabilir, çünkü neyin değiştiğinin bilinmesi gerekir. Tek başına `unbound-dns reload` bunu bilemez ve bir alt kademeden başlar.
 
@@ -151,20 +151,21 @@ Dosyada yönetilmeyen satırlar (yorumlar, boş satırlar, tanınmayan direktifl
 
 ## Çıkış kodları
 
-| Kod | Anlamı |
-|---|---|
-| 0 | Başarılı |
-| 1 | Genel hata |
-| 2 | Ayar hatası |
-| 3 | Bağlantı hatası |
-| 4 | Config doğrulama hatası |
-| 5 | Kısmi başarı (bazı sunucular veya satırlar başarısız) |
+| Kod | Anlamı                                                |
+|-----|-------------------------------------------------------|
+| 0   | Başarılı                                              |
+| 1   | Genel hata                                            |
+| 2   | Ayar hatası                                           |
+| 3   | Bağlantı hatası                                       |
+| 4   | Config doğrulama hatası                               |
+| 5   | Kısmi başarı (bazı sunucular veya satırlar başarısız) |
 
 ## Geliştirme
 
 ```bash
 make test        # go test -count=1 ./...
 make test-race
+make test-nogui  # arayüz paketi olmadan, OpenGL başlıkları gerekmez
 make lint        # golangci-lint
 make vuln        # govulncheck
 ```
@@ -194,6 +195,14 @@ internal/ui/           Fyne ekranları
 ```
 
 İş mantığının tamamı `internal/` altındadır. CLI ve GUI aynı paketleri çağırır, davranışı tekrarlamaz.
+
+`internal/ui` paketi `nogui` build tag'i ile tamamen dışarıda kalır, bu yüzden statik CLI yapısı OpenGL başlıkları olmayan bir makinede de derlenir.
+
+### Sürekli entegrasyon
+
+`.github/workflows/ci.yml` her push ve pull request'te çalışır: biçim, `go mod tidy` denetimi, `go vet`, testler (yarış dedektörüyle birlikte), her iki build varyantı için lint, `govulncheck`, beş platforma çapraz derleme, üç işletim sisteminde arayüzlü derleme ve Docker ortamında uçtan uca senaryo.
+
+`.github/workflows/release.yml` `v*` biçiminde bir etiket atıldığında binary'leri üretir, `SHA256SUMS` hesaplar ve GitHub release'i oluşturur.
 
 ## unbound.ps1
 

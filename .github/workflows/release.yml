@@ -117,18 +117,6 @@ jobs:
             : > notes.md
           fi
 
-          cat >> notes.md <<'MARKDOWN'
-          `yada-<os>-<arch>` dosyaları statik komut satırı yapılarıdır.
-          Çalışma zamanı bağımlılığı yoktur ve arayüz içermezler.
-
-          `yada-gui-<os>-<arch>` dosyaları arayüzü de içerir. Argümansız
-          çalıştırıldığında pencereyi açar, `-cli` ile komut satırına geçer.
-
-          Bütünlük doğrulaması için `SHA256SUMS`.
-
-          Kurulum ve kullanım için README dosyasına bakın.
-          MARKDOWN
-
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}

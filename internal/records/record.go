@@ -76,6 +76,40 @@ func (r Record) FullKey() string {
 	return r.Key() + "|" + r.Value
 }
 
+// Equal reports whether two records are identical in every field that reaches
+// the file. TTL is a pointer, so the struct cannot simply be compared.
+//
+// This is what tells a write it has nothing to do. Rewriting a line that
+// already says the right thing would re-render it from the record and lose the
+// operator's own formatting.
+func (r Record) Equal(other Record) bool {
+	if r.Key() != other.Key() || r.Value != other.Value {
+		return false
+	}
+
+	if r.class() != other.class() {
+		return false
+	}
+
+	switch {
+	case r.TTL == nil && other.TTL == nil:
+		return true
+	case r.TTL == nil || other.TTL == nil:
+		return false
+	default:
+		return *r.TTL == *other.TTL
+	}
+}
+
+// class returns the effective class, since an empty one means the default.
+func (r Record) class() string {
+	if r.Class == "" {
+		return DefaultClass
+	}
+
+	return r.Class
+}
+
 // String renders the record as it appears inside the quotes of a local-data
 // line.
 func (r Record) String() string {
@@ -86,12 +120,7 @@ func (r Record) String() string {
 		parts = append(parts, strconv.FormatUint(uint64(*r.TTL), 10))
 	}
 
-	class := r.Class
-	if class == "" {
-		class = DefaultClass
-	}
-
-	parts = append(parts, class, string(r.Type), r.rdata())
+	parts = append(parts, r.class(), string(r.Type), r.rdata())
 
 	return strings.Join(parts, " ")
 }

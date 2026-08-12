@@ -176,6 +176,39 @@ func (f *File) Update(rec Record) error {
 	return fmt.Errorf("%s için %s kaydı bulunamadı", strings.TrimSuffix(rec.Name, "."), rec.Type)
 }
 
+// Set writes a record whether or not the name and type are already present:
+// it updates in place when they are, and adds otherwise.
+//
+// This is what lets one decision bring every server to the same state, since
+// the servers need not agree on what they hold beforehand.
+//
+// A record that is already exactly right is left alone rather than rewritten.
+// Rewriting would mark the line as generated and re-render it from the record,
+// which discards the formatting an operator wrote by hand and turns a no-op
+// into a diff.
+func (f *File) Set(rec Record) error {
+	if err := rec.Validate(); err != nil {
+		return err
+	}
+
+	for i, line := range f.Lines {
+		if line.Kind != KindData || line.Record.Key() != rec.Key() {
+			continue
+		}
+
+		if line.Record.Equal(rec) {
+			return nil
+		}
+
+		f.Lines[i].Record = rec
+		f.Lines[i].generated = true
+
+		return nil
+	}
+
+	return f.Add(rec)
+}
+
 // PruneUnusedZones removes transparent zone lines that no record needs any
 // more.
 //

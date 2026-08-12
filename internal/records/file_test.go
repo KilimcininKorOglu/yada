@@ -234,6 +234,85 @@ func TestUpdateReportsMissingRecord(t *testing.T) {
 	}
 }
 
+func TestSetUpdatesExistingRecord(t *testing.T) {
+	f, _ := Parse([]byte(existingFile))
+
+	rec, _ := New("mail.google.com", TypeA, "10.11.12.13", nil)
+	if err := f.Set(rec); err != nil {
+		t.Fatalf("yazma hatası: %v", err)
+	}
+
+	out := string(f.Bytes())
+
+	if !strings.Contains(out, `local-data: "mail.google.com. IN A 10.11.12.13"`) {
+		t.Errorf("değer güncellenmedi:\n%s", out)
+	}
+	if strings.Contains(out, "10.10.10.10") {
+		t.Error("eski değer kaldı")
+	}
+
+	if strings.Index(out, "mail.google.com") > strings.Index(out, "www.google.com") {
+		t.Error("yazma kaydın sırasını değiştirdi")
+	}
+}
+
+func TestSetAddsMissingRecord(t *testing.T) {
+	f, _ := Parse([]byte(existingFile))
+
+	rec, _ := New("host.yenidomain.com", TypeA, "10.60.60.60", nil)
+	if err := f.Set(rec); err != nil {
+		t.Fatalf("yazma hatası: %v", err)
+	}
+
+	out := string(f.Bytes())
+
+	if !strings.Contains(out, `local-data: "host.yenidomain.com. IN A 10.60.60.60"`) {
+		t.Errorf("kayıt eklenmedi:\n%s", out)
+	}
+	if !strings.Contains(out, `local-zone: "yenidomain.com." transparent`) {
+		t.Errorf("eksik zone açılmadı:\n%s", out)
+	}
+}
+
+// A record that already says the right thing must not be rewritten: the line
+// would be re-rendered from the record and the operator's own formatting would
+// be lost, turning a no-op into a diff.
+func TestSetLeavesAnIdenticalRecordUntouched(t *testing.T) {
+	f, _ := Parse([]byte(existingFile))
+
+	ttl := new(uint32(3600))
+
+	rec, err := New("db.internal.local", TypeA, "192.168.1.10", ttl)
+	if err != nil {
+		t.Fatalf("kayıt oluşturulamadı: %v", err)
+	}
+
+	if err := f.Set(rec); err != nil {
+		t.Fatalf("yazma hatası: %v", err)
+	}
+
+	if got := string(f.Bytes()); got != existingFile {
+		t.Errorf("aynı kayıt dosyayı değiştirdi:\n--- gelen ---\n%s\n--- beklenen ---\n%s", got, existingFile)
+	}
+}
+
+// The value matches but the TTL does not, so the line has to be rewritten.
+func TestSetWritesWhenOnlyTheTTLDiffers(t *testing.T) {
+	f, _ := Parse([]byte(existingFile))
+
+	rec, _ := New("db.internal.local", TypeA, "192.168.1.10", new(uint32(60)))
+
+	if err := f.Set(rec); err != nil {
+		t.Fatalf("yazma hatası: %v", err)
+	}
+
+	out := string(f.Bytes())
+
+	if !strings.Contains(out, `local-data: "db.internal.local. 60 IN A 192.168.1.10"`) {
+		t.Errorf("TTL güncellenmedi:\n%s", out)
+	}
+}
+
 // A transparent zone with no records does nothing, so it is safe to drop. Any
 // other zone type is a deliberate policy and must survive.
 func TestPruneRemovesEmptyTransparentZonesOnly(t *testing.T) {

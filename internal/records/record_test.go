@@ -244,3 +244,66 @@ func TestKeyIgnoresValueButFullKeyDoesNot(t *testing.T) {
 		t.Error("FullKey değeri yok sayıyor, fark tespiti bozulur")
 	}
 }
+
+// Equal decides whether a write has anything to do, so every field that
+// reaches the file has to count, TTL included.
+func TestEqual(t *testing.T) {
+	base, _ := New("h.example.com", TypeA, "10.0.0.1", nil)
+
+	cases := []struct {
+		name  string
+		other Record
+		want  bool
+	}{
+		{"aynı kayıt eşittir", base, true},
+		{"farklı değer eşit değildir", mustNew(t, "h.example.com", TypeA, "10.0.0.2", nil), false},
+		{"farklı ad eşit değildir", mustNew(t, "i.example.com", TypeA, "10.0.0.1", nil), false},
+		{"TTL eklenmesi eşitliği bozar", mustNew(t, "h.example.com", TypeA, "10.0.0.1", new(uint32(300))), false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := base.Equal(tc.other); got != tc.want {
+				t.Errorf("Equal = %v, beklenen %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestEqualComparesTTLValuesNotPointers(t *testing.T) {
+	a := mustNew(t, "h.example.com", TypeA, "10.0.0.1", new(uint32(300)))
+	b := mustNew(t, "h.example.com", TypeA, "10.0.0.1", new(uint32(300)))
+
+	if !a.Equal(b) {
+		t.Error("aynı TTL değeri farklı işaretçilerde eşitsiz sayıldı")
+	}
+
+	c := mustNew(t, "h.example.com", TypeA, "10.0.0.1", new(uint32(600)))
+	if a.Equal(c) {
+		t.Error("farklı TTL eşit sayıldı")
+	}
+}
+
+// An empty class means IN, so a record read from a file must compare equal to
+// one built in memory.
+func TestEqualTreatsAnEmptyClassAsTheDefault(t *testing.T) {
+	built := mustNew(t, "h.example.com", TypeA, "10.0.0.1", nil)
+
+	parsed := built
+	parsed.Class = ""
+
+	if !built.Equal(parsed) {
+		t.Error("boş sınıf varsayılandan farklı sayıldı")
+	}
+}
+
+func mustNew(t *testing.T, name string, recType Type, value string, ttl *uint32) Record {
+	t.Helper()
+
+	rec, err := New(name, recType, value, ttl)
+	if err != nil {
+		t.Fatalf("kayıt oluşturulamadı: %v", err)
+	}
+
+	return rec
+}

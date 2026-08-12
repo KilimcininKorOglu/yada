@@ -110,11 +110,27 @@ func isQuoted(s string) bool {
 	return len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"'
 }
 
-// Zone returns the parent zone of the record name, which is the name with its
-// first label removed. A local-zone entry for this zone must exist before
-// Unbound will answer for the record.
+// Zone returns the zone a local-zone entry should declare for this record.
 func (r Record) Zone() string {
-	return ParentZone(r.Name)
+	return ZoneFor(r.Name)
+}
+
+// ZoneFor picks the zone to declare for a record name.
+//
+// Normally that is the parent, so "mail.google.com." yields "google.com." and
+// the rest of google.com keeps resolving normally. When the parent would be a
+// bare TLD the name itself is used instead: declaring "com." transparent puts
+// an entry for an entire top-level domain into the config, which is far wider
+// than anything the user asked for.
+func ZoneFor(name string) string {
+	name = NormalizeName(name)
+
+	parent := ParentZone(name)
+	if labelCount(parent) < 2 {
+		return name
+	}
+
+	return parent
 }
 
 // ParentZone strips the first label from a name. "mail.google.com." becomes
@@ -128,6 +144,16 @@ func ParentZone(name string) string {
 	}
 
 	return rest
+}
+
+// labelCount counts the labels in a name, ignoring the root dot.
+func labelCount(name string) int {
+	bare := strings.TrimSuffix(NormalizeName(name), ".")
+	if bare == "" {
+		return 0
+	}
+
+	return strings.Count(bare, ".") + 1
 }
 
 // NormalizeName lower-cases a name and gives it the trailing dot Unbound

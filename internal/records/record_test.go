@@ -36,6 +36,25 @@ func TestParentZone(t *testing.T) {
 	}
 }
 
+// Declaring a bare TLD transparent would cover every domain under it, which is
+// never what adding one record means.
+func TestZoneForNeverReturnsBareTLD(t *testing.T) {
+	cases := map[string]string{
+		"mail.google.com":          "google.com.",
+		"a.b.c.example.com.":       "b.c.example.com.",
+		"example.com":              "example.com.",
+		"test.local":               "test.local.",
+		"10.10.10.10.in-addr.arpa": "10.10.10.in-addr.arpa.",
+		"host":                     "host.",
+	}
+
+	for in, want := range cases {
+		if got := ZoneFor(in); got != want {
+			t.Errorf("ZoneFor(%q) = %q, beklenen %q", in, got, want)
+		}
+	}
+}
+
 func TestValidateAcceptsValidRecords(t *testing.T) {
 	cases := []struct {
 		name  string

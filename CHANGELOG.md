@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.2] - 2026-08-12
+
+### Changed
+
+- The interface is no longer built on three runners in CI. Its tests move to the lint job, which already has the cgo build dependencies, and the release workflow still builds it for every target.
+
+### Fixed
+
+- A failed operation reports what went wrong. The interface cancelled its own context as soon as the work returned and then asked that context whether the user had cancelled, so every failure was logged as a cancellation and the real message, in the log and in the error dialog, was lost.
+- Adding a server validates the configuration before it writes anything. A server the configuration file rejects, such as one repeating a host and port already listed, no longer leaves a private key, a `known_hosts` entry and a `Host` block behind for a server that never appears in the application.
+
 ## [1.0.1] - 2026-08-12
 
 ### Changed

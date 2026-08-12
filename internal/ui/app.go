@@ -39,10 +39,6 @@ type App struct {
 	// A screen that lists the servers has to follow a server being added, and
 	// it cannot learn that from its own widgets.
 	configChanged []func()
-
-	// cancel aborts the operation currently running, if any.
-	cancelMu sync.Mutex
-	cancel   context.CancelFunc
 }
 
 // onConfigChange registers a callback for every reload of the configuration.
@@ -174,10 +170,6 @@ func (a *App) buildTabs() fyne.CanvasObject {
 func (a *App) run(title string, work func(context.Context) error, done func()) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	a.cancelMu.Lock()
-	a.cancel = cancel
-	a.cancelMu.Unlock()
-
 	progress := dialog.NewCustomWithoutButtons(title, widget.NewProgressBarInfinite(), a.window)
 
 	cancelButton := widget.NewButton("İptal", func() {
@@ -189,12 +181,17 @@ func (a *App) run(title string, work func(context.Context) error, done func()) {
 	go func() {
 		err := work(ctx)
 
+		// Read this before the cancel below. That call fills ctx.Err() whether
+		// the user asked for it or not, so asking afterwards would report every
+		// failure as a cancellation and throw the real message away.
+		cancelled := ctx.Err() != nil
+
 		fyne.Do(func() {
 			progress.Hide()
 			cancel()
 
 			if err != nil {
-				if ctx.Err() != nil {
+				if cancelled {
 					a.log.add("İşlem iptal edildi.")
 				} else {
 					a.log.addf("HATA: %v", err)

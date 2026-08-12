@@ -26,6 +26,7 @@ type globalFlags struct {
 	servers    []string
 	jsonOutput bool
 	dryRun     bool
+	noReload   bool
 }
 
 var flags globalFlags
@@ -49,11 +50,14 @@ func newRootCommand() *cobra.Command {
 		"çıktıyı JSON olarak ver")
 	root.PersistentFlags().BoolVar(&flags.dryRun, "dry-run", false,
 		"değişiklik yapmadan yalnızca ne olacağını göster")
+	root.PersistentFlags().BoolVar(&flags.noReload, "no-reload", false,
+		"değişiklikten sonra servisi yenileme")
 
 	root.AddCommand(newCheckCommand())
 	root.AddCommand(newConfigCommand())
 	root.AddCommand(newListCommand())
 	root.AddCommand(newAddCommand())
+	root.AddCommand(newReloadCommand())
 
 	return root
 }

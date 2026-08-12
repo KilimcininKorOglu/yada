@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kerem/unbound-dns/internal/config"
 	"github.com/kerem/unbound-dns/internal/records"
 	"github.com/kerem/unbound-dns/internal/transport"
 	"github.com/kerem/unbound-dns/internal/unbound"
@@ -73,12 +74,40 @@ func runAdd(ctx context.Context, name, typeName, value string, ttl *uint32) erro
 		return f.Add(rec)
 	})
 
-	return reportWriteResults("Eklenecek kayıt", rec, results, opts.DryRun)
+	changed, err := reportWriteResults("Eklenecek kayıt", rec, results, opts.DryRun)
+	if err != nil {
+		return err
+	}
+
+	return refreshChanged(ctx, runner, cfg, changed)
+}
+
+// refreshChanged reloads only the servers whose file actually changed. A
+// server that was skipped or failed has nothing new to pick up.
+func refreshChanged(ctx context.Context, runner transport.Runner, cfg config.Config, changed []config.Server) error {
+	if len(changed) == 0 || flags.dryRun {
+		return nil
+	}
+
+	if flags.noReload {
+		fmt.Println("\nYenileme atlandı (--no-reload). Devreye almak için: unbound-dns reload")
+		return nil
+	}
+
+	fmt.Println("\nServisler yenileniyor...")
+
+	scoped := cfg
+	scoped.Servers = changed
+
+	results := unbound.ReloadAll(ctx, runner, scoped)
+
+	return reportReloadResults(results, cfg.Behaviour.ReloadStrategy)
 }
 
 // reportWriteResults prints what happened per server and turns failures into
-// an exit code.
-func reportWriteResults(title string, rec records.Record, results []unbound.WriteResult, dryRun bool) error {
+// an exit code. It returns the servers whose file actually changed, which is
+// the set that needs refreshing afterwards.
+func reportWriteResults(title string, rec records.Record, results []unbound.WriteResult, dryRun bool) ([]config.Server, error) {
 	fmt.Printf("%s: %s\n", title, rec.String())
 
 	if dryRun {
@@ -89,7 +118,7 @@ func reportWriteResults(title string, rec records.Record, results []unbound.Writ
 
 	var (
 		failed  int
-		changed int
+		changed []config.Server
 	)
 
 	for _, res := range results {
@@ -119,24 +148,20 @@ func reportWriteResults(title string, rec records.Record, results []unbound.Writ
 			fmt.Print(indentBlock(res.Diff.String()))
 
 		default:
-			changed++
+			changed = append(changed, res.Server)
 			fmt.Printf("[%s] eklendi\n", label)
 			fmt.Print(indentBlock(res.Diff.String()))
 		}
 	}
 
 	if failed > 0 {
-		return &exitCodeError{
+		return changed, &exitCodeError{
 			code: exitCodeFor(failed, len(results)),
 			msg:  fmt.Sprintf("%d sunucuda işlem başarısız oldu", failed),
 		}
 	}
 
-	if changed > 0 && !dryRun {
-		fmt.Println("\nDeğişikliklerin devreye girmesi için: unbound-dns reload")
-	}
-
-	return nil
+	return changed, nil
 }
 
 // isAlreadyExists reports whether the failure is only that the record is

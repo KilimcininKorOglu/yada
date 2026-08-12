@@ -157,8 +157,7 @@ func (a *App) applyImport(recs []records.Record, replace bool) {
 				if err := f.Add(rec); err != nil {
 					// An existing record becomes an update, so re-applying a
 					// file converges instead of failing on every row.
-					var exists *records.ErrExists
-					if errors.As(err, &exists) {
+					if _, exists := errors.AsType[*records.ErrExists](err); exists {
 						if err := f.Update(rec); err != nil {
 							return err
 						}

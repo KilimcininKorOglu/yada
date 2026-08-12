@@ -141,7 +141,7 @@ func parseRow(row []string, index map[string]int) (records.Record, error) {
 			return records.Record{}, fmt.Errorf("ttl %q geçersiz, saniye cinsinden bir sayı olmalı", raw)
 		}
 
-		ttl = records.SetTTL(uint32(parsed))
+		ttl = new(uint32(parsed))
 	}
 
 	return records.New(name, recType, value, ttl)

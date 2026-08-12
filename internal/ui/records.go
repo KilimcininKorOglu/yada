@@ -434,7 +434,7 @@ func parseTTL(text string) (*uint32, error) {
 		return nil, fmt.Errorf("TTL %q geçersiz, saniye cinsinden bir sayı olmalı", text)
 	}
 
-	return records.SetTTL(uint32(parsed)), nil
+	return new(uint32(parsed)), nil
 }
 
 func ttlText(ttl *uint32) string {

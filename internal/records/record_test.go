@@ -214,7 +214,7 @@ func TestRecordString(t *testing.T) {
 		t.Errorf("String() = %q", got)
 	}
 
-	withTTL, _ := New("mail.google.com", TypeA, "10.10.10.10", SetTTL(3600))
+	withTTL, _ := New("mail.google.com", TypeA, "10.10.10.10", new(uint32(3600)))
 	if got := withTTL.String(); got != "mail.google.com. IN 3600 A 10.10.10.10" &&
 		got != "mail.google.com. 3600 IN A 10.10.10.10" {
 		t.Errorf("TTL'li String() = %q", got)

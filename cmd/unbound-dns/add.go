@@ -159,8 +159,8 @@ func reportWriteResults(title string, rec records.Record, results []unbound.Writ
 // isAlreadyExists reports whether the failure is only that the record is
 // already present, which is an acceptable outcome rather than an error.
 func isAlreadyExists(err error) bool {
-	var exists *records.ErrExists
-	return errors.As(err, &exists)
+	_, exists := errors.AsType[*records.ErrExists](err)
+	return exists
 }
 
 func indentBlock(text string) string {

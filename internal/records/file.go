@@ -171,7 +171,7 @@ func parseDataBody(body string) (Record, bool) {
 
 	// An optional TTL comes before the class.
 	if ttl, err := strconv.ParseUint(rest[0], 10, 32); err == nil {
-		rec.TTL = SetTTL(uint32(ttl))
+		rec.TTL = new(uint32(ttl))
 		rest = rest[1:]
 	}
 

@@ -96,7 +96,7 @@ func TestConflictOutranksMissing(t *testing.T) {
 // A differing TTL does not change what the resolver answers, so it must not
 // register as a difference.
 func TestCompareIgnoresTTL(t *testing.T) {
-	withTTL, _ := records.New("h.example.com", records.TypeA, "10.0.0.1", records.SetTTL(300))
+	withTTL, _ := records.New("h.example.com", records.TypeA, "10.0.0.1", new(uint32(300)))
 	withoutTTL := rec(t, "h.example.com", records.TypeA, "10.0.0.1")
 
 	result := Compare([]ServerSet{

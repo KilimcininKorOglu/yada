@@ -6,6 +6,7 @@ package records
 import (
 	"fmt"
 	"net"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -171,11 +172,6 @@ func NormalizeName(name string) string {
 	return name
 }
 
-// SetTTL is a helper for building records, since TTL is a pointer.
-func SetTTL(ttl uint32) *uint32 {
-	return &ttl
-}
-
 // New builds a validated record from user input.
 func New(name string, t Type, value string, ttl *uint32) (Record, error) {
 	r := Record{
@@ -332,8 +328,8 @@ func ReverseName(ip string) (string, error) {
 
 	// IPv6: every nibble becomes a label, least significant first.
 	var b strings.Builder
-	for i := len(parsed) - 1; i >= 0; i-- {
-		fmt.Fprintf(&b, "%x.%x.", parsed[i]&0x0f, parsed[i]>>4)
+	for _, octet := range slices.Backward(parsed) {
+		fmt.Fprintf(&b, "%x.%x.", octet&0x0f, octet>>4)
 	}
 	b.WriteString("ip6.arpa.")
 

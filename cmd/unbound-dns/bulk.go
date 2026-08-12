@@ -125,8 +125,7 @@ func applyImport(f *records.File, recs []records.Record, replace bool) error {
 
 	for _, rec := range recs {
 		if err := f.Add(rec); err != nil {
-			var exists *records.ErrExists
-			if errors.As(err, &exists) {
+			if _, exists := errors.AsType[*records.ErrExists](err); exists {
 				// Update it instead, so an import can also change values.
 				if err := f.Update(rec); err != nil {
 					return err

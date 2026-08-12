@@ -146,7 +146,7 @@ func TestImportRejectsEmptyFile(t *testing.T) {
 func TestExportProducesImportableOutput(t *testing.T) {
 	original := []records.Record{
 		mustRecord(t, "mail.google.com", records.TypeA, "10.10.10.10", nil),
-		mustRecord(t, "www.google.com", records.TypeA, "10.30.30.30", records.SetTTL(3600)),
+		mustRecord(t, "www.google.com", records.TypeA, "10.30.30.30", new(uint32(3600))),
 		mustRecord(t, "note.example.com", records.TypeTXT, "bir not", nil),
 		mustRecord(t, "example.com", records.TypeMX, "10 mail.example.com.", nil),
 	}

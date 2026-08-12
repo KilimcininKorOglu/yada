@@ -34,6 +34,24 @@ func TestSelectMode(t *testing.T) {
 			wantRes: []string{"list", "--type", "A"},
 		},
 		{
+			// The interface understands --config on its own, so naming a
+			// configuration file is not a reason to fall to the command line.
+			name:    "yalnızca --config verilirse arayüz açılır",
+			args:    []string{"--config", "/tmp/a.conf"},
+			wantGUI: true,
+			wantRes: []string{"--config", "/tmp/a.conf"},
+		},
+		{
+			name:    "--config bir alt komutla birlikteyse komut satırı çalışır",
+			args:    []string{"--config", "/tmp/a.conf", "list"},
+			wantRes: []string{"--config", "/tmp/a.conf", "list"},
+		},
+		{
+			name:    "tanınmayan bayrak komut satırına gider",
+			args:    []string{"--json"},
+			wantRes: []string{"--json"},
+		},
+		{
 			name:    "--help arayüz açmaz",
 			args:    []string{"--help"},
 			wantRes: []string{"--help"},

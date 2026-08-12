@@ -27,12 +27,10 @@ func dispatch(args []string) int {
 // selectMode decides between the two interfaces and returns the arguments the
 // chosen one should see.
 //
-// Only the first argument selects the mode. Scanning the whole list would let
-// a record value such as "-cli" change how the program behaves, and a flag
-// buried behind a subcommand belongs to that subcommand anyway.
+// An explicit choice can only be made with the first argument. Scanning the
+// whole list would let a record value such as "-cli" change how the program
+// behaves, and a flag buried behind a subcommand belongs to that subcommand.
 func selectMode(args []string) (useGUI bool, rest []string) {
-	// Someone who typed a subcommand wants the command line, so only a bare
-	// invocation opens a window.
 	if len(args) == 0 {
 		return true, nil
 	}
@@ -42,6 +40,14 @@ func selectMode(args []string) (useGUI bool, rest []string) {
 		return false, args[1:]
 	case "-gui", "--gui":
 		return true, args[1:]
+	}
+
+	// Without an explicit choice, the interface runs when it can account for
+	// every argument by itself. Anything it does not understand is a
+	// subcommand, --help, or a command-line flag, all of which mean the user
+	// wants the command line.
+	if _, err := guiArgs(args); err == nil {
+		return true, args
 	}
 
 	return false, args

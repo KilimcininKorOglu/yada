@@ -5,11 +5,13 @@ package ui
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 
+	"github.com/KilimcininKorOglu/yada/internal/config"
 	"github.com/KilimcininKorOglu/yada/internal/unbound"
 )
 
@@ -18,10 +20,13 @@ import (
 // remote-control loses its cache on every change, and one without ExecReload
 // takes an outage.
 func (a *App) buildServersTab() fyne.CanvasObject {
-	statuses := []unbound.Status{}
+	// The rows come from the configuration, not from a test. Which servers are
+	// configured is known without touching the network, so the table has
+	// something to show the moment the tab opens.
+	rows := serverRows(a.config(), nil)
 
 	table := widget.NewTable(
-		func() (int, int) { return len(statuses) + 1, 5 },
+		func() (int, int) { return len(rows) + 1, len(serverColumns) },
 		func() fyne.CanvasObject { return widget.NewLabel("geniş içerik alanı") },
 		func(id widget.TableCellID, cell fyne.CanvasObject) {
 			label := cell.(*widget.Label)
@@ -29,34 +34,32 @@ func (a *App) buildServersTab() fyne.CanvasObject {
 
 			if id.Row == 0 {
 				label.TextStyle = fyne.TextStyle{Bold: true}
-				label.SetText([]string{"Sunucu", "Bağlantı", "Servis", "Config", "Yenileme"}[id.Col])
+				label.SetText(serverColumns[id.Col])
 
 				return
 			}
 
-			st := statuses[id.Row-1]
-
-			switch id.Col {
-			case 0:
-				label.SetText(st.Server.Label())
-			case 1:
-				label.SetText(boolText(st.Reachable, "tamam", "HATA"))
-			case 2:
-				label.SetText(stateText(st.Reachable, st.ServiceActive, "aktif", "PASİF"))
-			case 3:
-				label.SetText(stateText(st.Reachable, st.ConfigValid, "geçerli", "GEÇERSİZ"))
-			case 4:
-				label.SetText(st.AvailableTier())
-			}
+			label.SetText(rows[id.Row-1].cell(id.Col))
 		},
 	)
 
-	for col, width := range []float32{160, 110, 100, 110, 200} {
+	for col, width := range []float32{140, 200, 110, 100, 110, 190} {
 		table.SetColumnWidth(col, width)
 	}
 
-	summary := widget.NewLabel("Durum için «Tümünü test et» düğmesine basın.")
+	summary := widget.NewLabel("")
 	summary.Wrapping = fyne.TextWrapWord
+
+	// reseed redraws the table from the configuration alone, so a server added
+	// or edited shows up even before it has been reached.
+	reseed := func() {
+		rows = serverRows(a.config(), nil)
+		table.Refresh()
+		summary.SetText(describeServers(a.config()))
+	}
+
+	reseed()
+	a.onConfigChange(reseed)
 
 	// Declared before the buttons so each of them can ask for a fresh test
 	// after it changes something.
@@ -75,7 +78,7 @@ func (a *App) buildServersTab() fyne.CanvasObject {
 			result := unbound.CheckAll(ctx, a.transportRunner(), a.config())
 
 			fyne.Do(func() {
-				statuses = result
+				rows = serverRows(a.config(), result)
 				table.Refresh()
 				summary.SetText(summarise(result))
 			})
@@ -131,6 +134,105 @@ func (a *App) buildServersTab() fyne.CanvasObject {
 		summary, nil, nil,
 		table,
 	)
+}
+
+var serverColumns = []string{"Sunucu", "Adres", "Bağlantı", "Servis", "Config", "Yenileme"}
+
+// serverRow is a configured server with the result of the last test, when
+// there has been one.
+type serverRow struct {
+	server config.Server
+
+	// status is nil until the server has been tested, which is why the state
+	// columns can say so instead of showing a failure that never happened.
+	status *unbound.Status
+}
+
+// cell renders one column.
+func (r serverRow) cell(col int) string {
+	if r.status == nil {
+		switch col {
+		case 0:
+			return r.server.Label()
+		case 1:
+			return serverAddress(r.server)
+		default:
+			return "denenmedi"
+		}
+	}
+
+	st := *r.status
+
+	switch col {
+	case 0:
+		return st.Server.Label()
+	case 1:
+		return serverAddress(st.Server)
+	case 2:
+		return boolText(st.Reachable, "tamam", "HATA")
+	case 3:
+		return stateText(st.Reachable, st.ServiceActive, "aktif", "PASİF")
+	case 4:
+		return stateText(st.Reachable, st.ConfigValid, "geçerli", "GEÇERSİZ")
+	default:
+		return st.AvailableTier()
+	}
+}
+
+// serverAddress renders how the server is reached, which is what tells two
+// entries on the same host apart.
+func serverAddress(srv config.Server) string {
+	address := srv.Host
+	if srv.User != "" {
+		address = srv.User + "@" + address
+	}
+
+	if srv.Port != 0 {
+		address += ":" + strconv.Itoa(srv.Port)
+	}
+
+	return address
+}
+
+// serverRows pairs the configured servers with the statuses of the last test.
+// A status is matched by label, so a server added since the test simply has
+// none.
+func serverRows(cfg config.Config, statuses []unbound.Status) []serverRow {
+	byLabel := make(map[string]*unbound.Status, len(statuses))
+
+	for i := range statuses {
+		byLabel[statuses[i].Server.Label()] = &statuses[i]
+	}
+
+	rows := make([]serverRow, 0, len(cfg.Servers))
+
+	for _, srv := range cfg.Servers {
+		rows = append(rows, serverRow{server: srv, status: byLabel[srv.Label()]})
+	}
+
+	return rows
+}
+
+// serverLabels lists the configured servers, for the pickers that choose one.
+// Which servers exist is not a question for the network, so a picker can be
+// filled before anything has been read.
+func serverLabels(cfg config.Config) []string {
+	labels := make([]string, 0, len(cfg.Servers))
+
+	for _, srv := range cfg.Servers {
+		labels = append(labels, srv.Label())
+	}
+
+	return labels
+}
+
+// describeServers is the summary shown before any test has run.
+func describeServers(cfg config.Config) string {
+	if len(cfg.Servers) == 0 {
+		return "Tanımlı sunucu yok. «Sunucu ekle» ile başlayın."
+	}
+
+	return fmt.Sprintf("%d sunucu tanımlı. Durum için «Tümünü test et» düğmesine basın.", len(cfg.Servers))
 }
 
 func summarise(statuses []unbound.Status) string {

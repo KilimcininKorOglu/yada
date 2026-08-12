@@ -5,6 +5,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -57,8 +58,15 @@ func (a *App) buildDiffTab() fyne.CanvasObject {
 		table.SetColumnWidth(col, width)
 	}
 
-	sourceSelect := widget.NewSelect(nil, nil)
+	// The picker is filled from the configuration rather than from a
+	// comparison, so a source can be chosen the moment the tab opens.
+	sourceSelect := widget.NewSelect(serverLabels(a.config()), nil)
 	pruneCheck := widget.NewCheck("Kaynakta olmayanları hedeflerden sil", nil)
+
+	a.onConfigChange(func() {
+		sourceSelect.Options = serverLabels(a.config())
+		sourceSelect.Refresh()
+	})
 
 	compare := func() {
 		if !a.configured() {
@@ -112,9 +120,14 @@ func (a *App) buildDiffTab() fyne.CanvasObject {
 
 			fyne.Do(func() {
 				entries = differing
-				sourceSelect.Options = labels
 
-				if sourceSelect.Selected == "" && len(labels) > 0 {
+				// The picker already lists the configured servers. Narrowing
+				// it to the ones that were read keeps a source that cannot be
+				// compared from being offered.
+				sourceSelect.Options = labels
+				sourceSelect.Refresh()
+
+				if !slices.Contains(labels, sourceSelect.Selected) && len(labels) > 0 {
 					sourceSelect.SetSelected(labels[0])
 				}
 

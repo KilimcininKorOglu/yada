@@ -35,9 +35,23 @@ type App struct {
 
 	log *logPanel
 
+	// configChanged holds what to redraw when the configuration is reloaded.
+	// A screen that lists the servers has to follow a server being added, and
+	// it cannot learn that from its own widgets.
+	configChanged []func()
+
 	// cancel aborts the operation currently running, if any.
 	cancelMu sync.Mutex
 	cancel   context.CancelFunc
+}
+
+// onConfigChange registers a callback for every reload of the configuration.
+//
+// The callbacks touch widgets, so they run on the UI goroutine. Every caller
+// of loadConfig is already there: the screens call it from a button, and the
+// startup call happens before the window exists.
+func (a *App) onConfigChange(fn func()) {
+	a.configChanged = append(a.configChanged, fn)
 }
 
 // Run builds the window and blocks until it closes. An empty configPath leaves
@@ -84,6 +98,10 @@ func (a *App) loadConfig() {
 	}
 
 	a.log.addf("Ayar yüklendi: %s (%d sunucu)", cfg.SourcePath, len(cfg.Servers))
+
+	for _, fn := range a.configChanged {
+		fn()
+	}
 }
 
 // readConfig honours an explicitly named file and otherwise falls back to the

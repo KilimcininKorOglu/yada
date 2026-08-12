@@ -176,9 +176,18 @@ func (f *File) Update(rec Record) error {
 	return fmt.Errorf("%s için %s kaydı bulunamadı", strings.TrimSuffix(rec.Name, "."), rec.Type)
 }
 
-// PruneUnusedZones removes generated zone lines no record needs any more.
-// Zones declared in the original file are left alone: they may be there
-// deliberately, and this tool did not create them.
+// PruneUnusedZones removes transparent zone lines that no record needs any
+// more.
+//
+// Only transparent zones are touched. A transparent zone with no local-data
+// does nothing, since transparent means "fall through to the real resolver",
+// which is already the default. Other zone types are left alone: a static,
+// refuse or redirect zone with no records is a deliberate policy, and deleting
+// it would change how the resolver answers.
+//
+// Whether a line was written by this tool cannot be used as the criterion,
+// because that information is lost as soon as the file is read back from the
+// server.
 func (f *File) PruneUnusedZones() int {
 	needed := make(map[string]bool)
 
@@ -192,7 +201,11 @@ func (f *File) PruneUnusedZones() int {
 	removed := 0
 
 	for _, line := range f.Lines {
-		if line.Kind == KindZone && line.generated && !needed[line.ZoneName] {
+		unused := line.Kind == KindZone &&
+			line.ZoneType == DefaultZoneType &&
+			!needed[line.ZoneName]
+
+		if unused {
 			removed++
 			continue
 		}

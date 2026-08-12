@@ -234,29 +234,70 @@ func TestUpdateReportsMissingRecord(t *testing.T) {
 	}
 }
 
-func TestPruneOnlyRemovesGeneratedZones(t *testing.T) {
+// A transparent zone with no records does nothing, so it is safe to drop. Any
+// other zone type is a deliberate policy and must survive.
+func TestPruneRemovesEmptyTransparentZonesOnly(t *testing.T) {
 	f, _ := Parse([]byte(existingFile))
 
-	// Add a record, which generates a zone, then delete the record again.
-	rec, _ := New("host.gecici.com", TypeA, "10.70.70.70", nil)
-	if err := f.Add(rec); err != nil {
-		t.Fatalf("ekleme hatası: %v", err)
-	}
-	f.Delete("host.gecici.com", "", "")
-
-	// Also delete every record of a zone that came from the source file.
+	// Empty out both zones: google.com. is transparent, internal.local. is
+	// static.
+	f.Delete("mail.google.com", "", "")
+	f.Delete("www.google.com", "", "")
+	f.Delete("eski.google.com", "", "")
 	f.Delete("db.internal.local", "", "")
 	f.Delete("web.internal.local", "", "")
 
-	f.PruneUnusedZones()
+	if removed := f.PruneUnusedZones(); removed != 1 {
+		t.Errorf("%d zone silindi, yalnızca transparent olan silinmeliydi", removed)
+	}
 
 	out := string(f.Bytes())
 
-	if strings.Contains(out, "gecici.com") {
-		t.Error("üretilen boş zone temizlenmedi")
+	if strings.Contains(out, `local-zone: "google.com."`) {
+		t.Error("boş transparent zone temizlenmedi")
 	}
 	if !strings.Contains(out, `local-zone: "internal.local." static`) {
-		t.Error("dosyada var olan zone silindi, ona dokunulmamalıydı")
+		t.Error("static zone silindi, kayıtsız da olsa korunmalıydı")
+	}
+}
+
+// Pruning must not touch a zone that still has records, even indirectly.
+func TestPruneKeepsZonesInUse(t *testing.T) {
+	f, _ := Parse([]byte(existingFile))
+
+	f.Delete("www.google.com", "", "")
+
+	if removed := f.PruneUnusedZones(); removed != 0 {
+		t.Errorf("%d zone silindi, hâlâ kayıt varken silinmemeliydi", removed)
+	}
+
+	if !strings.Contains(string(f.Bytes()), `local-zone: "google.com."`) {
+		t.Error("kullanımdaki zone silindi")
+	}
+}
+
+// The tool cannot tell its own zone lines from the operator's once the file
+// has been read back, so a freshly parsed empty transparent zone is pruned
+// just the same.
+func TestPruneWorksOnZonesReadFromFile(t *testing.T) {
+	const input = `         local-zone: "bos.com." transparent
+         local-zone: "dolu.com." transparent
+         local-data: "host.dolu.com. IN A 10.0.0.1"
+`
+
+	f, _ := Parse([]byte(input))
+
+	if removed := f.PruneUnusedZones(); removed != 1 {
+		t.Fatalf("%d zone silindi, beklenen 1", removed)
+	}
+
+	out := string(f.Bytes())
+
+	if strings.Contains(out, "bos.com") {
+		t.Error("dosyadan okunan boş transparent zone temizlenmedi")
+	}
+	if !strings.Contains(out, "dolu.com") {
+		t.Error("kullanımdaki zone silindi")
 	}
 }
 

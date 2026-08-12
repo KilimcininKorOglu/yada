@@ -142,10 +142,12 @@ func (a *App) buildDiffTab() fyne.CanvasObject {
 		a.runSync(sourceSelect.Selected, pruneCheck.Checked, compare)
 	})
 
+	// The source is picked before either button is useful, so it comes first
+	// and the two actions stay together.
 	toolbar := container.NewHBox(
-		widget.NewButton("Karşılaştır", compare),
 		widget.NewLabel("Kaynak:"),
 		sourceSelect,
+		widget.NewButton("Karşılaştır", compare),
 		syncButton,
 	)
 

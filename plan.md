@@ -6,23 +6,23 @@ Mevcut `unbound.ps1` scriptini Go ile yazılmış, Windows, Linux ve macOS üzer
 
 Bu kararlar plan yazılmadan önce onaylandı.
 
-| Konu | Karar |
-|---|---|
-| GUI | Fyne |
-| SSH | Sistem `ssh` binary'si, `os/exec` ile |
-| Ayar formatı | YAML, dosya adı `unbound-dns.conf` |
-| Ayar önceliği | Önce uygulamanın yanı, sonra kullanıcı dizini |
-| Kapsam | Listeleme, silme, A dışı kayıt tipleri, CSV toplu işlem, sunucular arası fark |
-| Platformlar | Windows, Linux, macOS |
+| Konu          | Karar                                                                         |
+|---------------|-------------------------------------------------------------------------------|
+| GUI           | Fyne                                                                          |
+| SSH           | Sistem `ssh` binary'si, `os/exec` ile                                         |
+| Ayar formatı  | YAML, dosya adı `unbound-dns.conf`                                            |
+| Ayar önceliği | Önce uygulamanın yanı, sonra kullanıcı dizini                                 |
+| Kapsam        | Listeleme, silme, A dışı kayıt tipleri, CSV toplu işlem, sunucular arası fark |
+| Platformlar   | Windows, Linux, macOS                                                         |
 
 ## 2. Binary yapısı
 
 **İki ayrı binary üretilecek.** Gerekçe: Fyne CGO ve OpenGL gerektirir. Tek binary yapılırsa CLI de CGO'ya bağlanır, `CGO_ENABLED=0` ile statik derlenemez ve cross-compile için her hedefte C toolchain gerekir.
 
-| Binary | Bağımlılık | Kullanım |
-|---|---|---|
-| `unbound-dns` | Saf Go, `CGO_ENABLED=0` | CLI. Her platforma tek komutla cross-compile edilir, sunuculara kopyalanabilir. |
-| `unbound-dns-gui` | Fyne, CGO | Masaüstü arayüzü. Platform başına ayrı derlenir. |
+| Binary            | Bağımlılık              | Kullanım                                                                        |
+|-------------------|-------------------------|---------------------------------------------------------------------------------|
+| `unbound-dns`     | Saf Go, `CGO_ENABLED=0` | CLI. Her platforma tek komutla cross-compile edilir, sunuculara kopyalanabilir. |
+| `unbound-dns-gui` | Fyne, CGO               | Masaüstü arayüzü. Platform başına ayrı derlenir.                                |
 
 Ortak mantığın tamamı `internal/` altında toplanır. GUI, CLI'ın kullandığı paketleri çağırır, iş mantığını tekrarlamaz.
 
@@ -191,14 +191,14 @@ Değiştirilmemiş satırlar `Raw` alanından aynen yazılır, yalnızca eklenen
 
 ### 6.4 Tip bazlı doğrulama
 
-| Tip | Değer | Doğrulama |
-|---|---|---|
-| A | IPv4 | `net.ParseIP`, `To4()` sonucu nil olmamalı |
-| AAAA | IPv6 | `net.ParseIP`, `To4()` nil olmalı |
-| CNAME | Hedef ad | Alan adı biçimi, kendine döngü kontrolü |
-| TXT | Serbest metin | 255 baytlık parçalara bölme, tırnak kaçışı |
-| MX | `<öncelik> <hedef>` | Öncelik 0-65535, hedef alan adı |
-| PTR | Hedef ad | Ad `in-addr.arpa.` veya `ip6.arpa.` ile bitmeli |
+| Tip   | Değer               | Doğrulama                                       |
+|-------|---------------------|-------------------------------------------------|
+| A     | IPv4                | `net.ParseIP`, `To4()` sonucu nil olmamalı      |
+| AAAA  | IPv6                | `net.ParseIP`, `To4()` nil olmalı               |
+| CNAME | Hedef ad            | Alan adı biçimi, kendine döngü kontrolü         |
+| TXT   | Serbest metin       | 255 baytlık parçalara bölme, tırnak kaçışı      |
+| MX    | `<öncelik> <hedef>` | Öncelik 0-65535, hedef alan adı                 |
+| PTR   | Hedef ad            | Ad `in-addr.arpa.` veya `ip6.arpa.` ile bitmeli |
 
 Alan adı doğrulaması: etiket başına en fazla 63 karakter, toplam 253 karakter, izin verilen karakter kümesi harf, rakam, tire; etiket tire ile başlayamaz veya bitemez. Uluslararası alan adları `golang.org/x/net/idna` ile punycode'a çevrilir.
 
@@ -228,11 +228,11 @@ Bir sunucudaki başarısızlık diğerlerini durdurmaz. Her sunucunun sonucu ayr
 
 Üç kademe, en hafiften en ağıra. Her kademe başarısız olursa bir sonrakine geçilir ve geçiş nedeni kullanıcıya yazılır.
 
-| Sıra | Komut | Kesinti | Cache | Ön koşul |
-|---|---|---|---|---|
-| 1 | `unbound-control reload_keep_cache` | Yok | Korunur | `remote-control: control-enable: yes` ve `unbound-control-setup` sertifikaları |
-| 2 | `systemctl reload unbound` (SIGHUP) | Yok | Silinir | Unit dosyasında `ExecReload` tanımlı olmalı |
-| 3 | `systemctl restart unbound` | Var | Silinir | Yok |
+| Sıra | Komut                               | Kesinti | Cache   | Ön koşul                                                                       |
+|------|-------------------------------------|---------|---------|--------------------------------------------------------------------------------|
+| 1    | `unbound-control reload_keep_cache` | Yok     | Korunur | `remote-control: control-enable: yes` ve `unbound-control-setup` sertifikaları |
+| 2    | `systemctl reload unbound` (SIGHUP) | Yok     | Silinir | Unit dosyasında `ExecReload` tanımlı olmalı                                    |
+| 3    | `systemctl restart unbound`         | Var     | Silinir | Yok                                                                            |
 
 İkinci kademeden sonra `systemctl is-active unbound` ile durum doğrulanır. Daemon config'i yeniden okurken reddederse süreç ölür, ancak `systemctl reload` yine de sıfır döner; bu kontrol olmadan ölü servis başarılı sayılır.
 
@@ -354,20 +354,20 @@ Her aşama kendi içinde çalışır durumda bitirilir ve ayrı ayrı commit edi
 
 **Durum: tüm aşamalar tamamlandı.** Uygulama sırasında planın 4.2, 6.5 ve 8. bölümlerinde düzeltmeler yapıldı; bunlar ilgili bölümlere işlendi.
 
-| Aşama | İçerik | Biterken doğrulanan |
-|---|---|---|
-| 1 | Proje iskeleti, `go.mod`, Makefile, `internal/config` | Ayar dosyası iki konumdan da yükleniyor, eksik alanlar raporlanıyor |
-| 2 | `internal/transport`, `unbound-dns check` | Sahte `ssh` ile bağlantı testi ve hata kodları doğru raporlanıyor |
-| 3 | `internal/records` ayrıştırma ve serileştirme, `list` | Round-trip testi geçiyor, yorumlar korunuyor |
-| 4 | Yazma akışı, `add`, checkconf, geri alma | Bozuk config yazıldığında dosya eski haline dönüyor |
-| 5 | Üç kademeli yenileme, `reload` | Üç senaryo (control yok, reload yok, ikisi de yok) doğru kademeye düşüyor |
-| 6 | `delete`, `update` | Silinen satır dışındaki içerik bit düzeyinde korunuyor |
-| 7 | A dışı kayıt tipleri | Her tip için doğrulama testleri geçiyor |
-| 8 | `import`, `export` | Dışa aktarılan dosya kayıpsız içe aktarılıyor |
-| 9 | `diff`, `sync` | Çakışma otomatik eşitlenmiyor, `--prune` olmadan silme yapılmıyor |
-| 10 | GUI: sunucular, kayıtlar, ekleme ekranları | Uzun işlemde arayüz donmuyor |
-| 11 | GUI: fark, toplu işlem, ayarlar, günlük | Yıkıcı işlemler onay istiyor |
-| 12 | Paketleme, README, sürüm bilgisi | Üç platformda binary üretiliyor |
+| Aşama | İçerik                                                | Biterken doğrulanan                                                       |
+|-------|-------------------------------------------------------|---------------------------------------------------------------------------|
+| 1     | Proje iskeleti, `go.mod`, Makefile, `internal/config` | Ayar dosyası iki konumdan da yükleniyor, eksik alanlar raporlanıyor       |
+| 2     | `internal/transport`, `unbound-dns check`             | Sahte `ssh` ile bağlantı testi ve hata kodları doğru raporlanıyor         |
+| 3     | `internal/records` ayrıştırma ve serileştirme, `list` | Round-trip testi geçiyor, yorumlar korunuyor                              |
+| 4     | Yazma akışı, `add`, checkconf, geri alma              | Bozuk config yazıldığında dosya eski haline dönüyor                       |
+| 5     | Üç kademeli yenileme, `reload`                        | Üç senaryo (control yok, reload yok, ikisi de yok) doğru kademeye düşüyor |
+| 6     | `delete`, `update`                                    | Silinen satır dışındaki içerik bit düzeyinde korunuyor                    |
+| 7     | A dışı kayıt tipleri                                  | Her tip için doğrulama testleri geçiyor                                   |
+| 8     | `import`, `export`                                    | Dışa aktarılan dosya kayıpsız içe aktarılıyor                             |
+| 9     | `diff`, `sync`                                        | Çakışma otomatik eşitlenmiyor, `--prune` olmadan silme yapılmıyor         |
+| 10    | GUI: sunucular, kayıtlar, ekleme ekranları            | Uzun işlemde arayüz donmuyor                                              |
+| 11    | GUI: fark, toplu işlem, ayarlar, günlük               | Yıkıcı işlemler onay istiyor                                              |
+| 12    | Paketleme, README, sürüm bilgisi                      | Üç platformda binary üretiliyor                                           |
 
 ## 16. Kapsam dışı
 

@@ -5,3 +5,6 @@ dist/
 # The real configuration may hold host names and user names for internal
 # infrastructure; only the example is tracked.
 unbound-dns.conf
+
+# Fyne bundles a large binary; builds stay out of the repository.
+*.syso

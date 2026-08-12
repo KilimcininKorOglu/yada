@@ -131,7 +131,36 @@ expect_contains "$body" "# Local records, spliced into the server clause" "dosya
 
 begin "add: aynı kayıt ikinci kez eklenmiyor"
 out=$(cli add mail.example.test A 10.10.10.10 2>&1) || true
-expect_contains "$out" "atlandı" "var olan kayıt atlandı"
+expect_contains "$out" "zaten var" "var olan kayıt bildirildi"
+expect_missing "$out" "BAŞARISIZ" "yineleme hata sayılmadı"
+
+# A different value for a name that is taken is a replacement, and the script
+# has no terminal, so the tool has to refuse rather than overwrite silently.
+begin "add: çakışan değer onaysız yazılmıyor"
+out=$(cli add mail.example.test A 10.60.60.60 </dev/null 2>&1) && fail "onaysız çakışma kabul edildi" || true
+expect_contains "$out" "başka bir değerle duruyor" "çakışma raporlandı"
+
+for server in ns1 ns2 ns3; do
+    expect_resolves "$server" mail.example.test A 10.10.10.10
+done
+
+# The same command with --yes replaces the record everywhere, including the
+# server the record was removed from, which is what "one decision, one end
+# state" has to mean.
+begin "add: --yes ile çakışan değer her sunucuda aynı hale getiriliyor"
+on_server ns2 'sudo sed -i "/mail.example.test/d" /etc/unbound/local_records.conf && sudo unbound-control reload_keep_cache >/dev/null'
+expect_empty ns2 mail.example.test A
+
+out=$(cli add mail.example.test A 10.60.60.60 --yes 2>&1) || fail "onaylı çakışma yazılamadı"
+expect_contains "$out" "güncellendi" "var olan kayıt güncellendi"
+expect_contains "$out" "eklendi" "eksik sunucuya eklendi"
+
+for server in ns1 ns2 ns3; do
+    expect_resolves "$server" mail.example.test A 10.60.60.60
+done
+
+# Put the value back, so the steps that follow read the same fixture as before.
+cli add mail.example.test A 10.10.10.10 --yes >/dev/null 2>&1 || fail "kayıt eski değerine döndürülemedi"
 
 begin "update: değer değişince daemon yeni değeri veriyor"
 out=$(cli update mail.example.test --type A --value 10.20.30.40 2>&1) || fail "update başarısız"

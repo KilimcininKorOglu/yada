@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -68,10 +67,16 @@ func runAdd(ctx context.Context, name, typeName, value string, ttl *uint32) erro
 		DryRun: flags.dryRun,
 	}
 
-	// Each server gets its own parsed file, so a record already present on one
-	// server does not block the others from receiving it.
+	proceed, err := resolveAddConflict(ctx, runner, cfg, rec)
+	if err != nil || !proceed {
+		return err
+	}
+
+	// Set rather than Add, so one decision brings every server to the same
+	// state: the record is added where it is missing and replaced where it
+	// differs.
 	results := unbound.Apply(ctx, runner, cfg, opts, func(f *records.File) error {
-		return f.Add(rec)
+		return f.Set(rec)
 	})
 
 	if err := reportWriteResults("Eklenecek kayıt", rec, results, opts.DryRun); err != nil {
@@ -79,6 +84,60 @@ func runAdd(ctx context.Context, name, typeName, value string, ttl *uint32) erro
 	}
 
 	return refreshChanged(ctx, runner, cfg, results)
+}
+
+// resolveAddConflict looks at what the servers already hold and decides whether
+// the write should go ahead.
+//
+// Checking first is what separates "the record is already there" from "the
+// record is there with another value". The second is a replacement, and the
+// user has to agree to it rather than discover it afterwards.
+func resolveAddConflict(
+	ctx context.Context,
+	runner transport.Runner,
+	cfg config.Config,
+	rec records.Record,
+) (bool, error) {
+	check := unbound.CheckAdd(ctx, runner, cfg, rec)
+
+	if check.Readable == 0 {
+		return false, &exitCodeError{code: exitError, msg: "hiçbir sunucu okunamadı"}
+	}
+
+	switch check.Outcome {
+	case unbound.AddDuplicate:
+		fmt.Printf("%s kaydı zaten var, değişiklik gerekmiyor.\n\n", rec.String())
+		printIndented(check.Summary())
+
+		return false, nil
+
+	case unbound.AddConflict:
+		fmt.Printf("%s için %s kaydı başka bir değerle duruyor:\n\n",
+			strings.TrimSuffix(rec.Name, "."), rec.Type)
+		printIndented(check.Summary())
+		fmt.Println()
+
+		// A dry run reports the change instead of making it, so there is
+		// nothing to approve.
+		if flags.dryRun {
+			return true, nil
+		}
+
+		ok, err := confirm(fmt.Sprintf("Kayıt %s değeriyle değiştirilsin mi?", rec.Value))
+		if err != nil {
+			return false, err
+		}
+
+		if !ok {
+			fmt.Println("İşlem iptal edildi.")
+			return false, nil
+		}
+
+		return true, nil
+
+	default:
+		return true, nil
+	}
 }
 
 // refreshChanged makes the write take effect on the servers it actually
@@ -118,10 +177,6 @@ func reportWriteResults(title string, rec records.Record, results []unbound.Writ
 		label := res.Server.Label()
 
 		switch {
-		case res.Err != nil && isAlreadyExists(res.Err):
-			// Not a failure: the desired state is already in place.
-			fmt.Printf("[%s] atlandı: %s\n", label, res.Err)
-
 		case res.Err != nil:
 			failed++
 			fmt.Printf("[%s] BAŞARISIZ: %s\n", label, res.Err)
@@ -141,7 +196,14 @@ func reportWriteResults(title string, rec records.Record, results []unbound.Writ
 			fmt.Print(indentBlock(res.Diff.String()))
 
 		default:
-			fmt.Printf("[%s] eklendi\n", label)
+			// A removed line means an existing record was replaced rather than
+			// a new one appended.
+			verb := "eklendi"
+			if len(res.Diff.Removed) > 0 {
+				verb = "güncellendi"
+			}
+
+			fmt.Printf("[%s] %s\n", label, verb)
 			fmt.Print(indentBlock(res.Diff.String()))
 		}
 	}
@@ -154,13 +216,6 @@ func reportWriteResults(title string, rec records.Record, results []unbound.Writ
 	}
 
 	return nil
-}
-
-// isAlreadyExists reports whether the failure is only that the record is
-// already present, which is an acceptable outcome rather than an error.
-func isAlreadyExists(err error) bool {
-	_, exists := errors.AsType[*records.ErrExists](err)
-	return exists
 }
 
 func indentBlock(text string) string {

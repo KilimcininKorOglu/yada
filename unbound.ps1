@@ -65,6 +65,19 @@ function Add-UnboundRecord {
             }
         }
 
+        # Aynı domain için kayıt varsa tekrar ekleme
+        $domainPattern = "local-data: `"$Domain. IN A"
+        ssh "$Username@$Server" "grep -qF '$domainPattern' $ConfigFile"
+        $grepExitCode = $LASTEXITCODE
+        if ($grepExitCode -eq 0) {
+            Write-ColorOutput "[$Server] Bu domain için kayıt zaten var, atlanıyor: $Domain" $Yellow
+            return $true
+        }
+        if ($grepExitCode -gt 1) {
+            Write-ColorOutput "[$Server] Mevcut kayıtlar okunamadı (ssh çıkış kodu: $grepExitCode)" $Red
+            return $false
+        }
+
         # A kaydını ekle (9 space ile)
         $dataText = "         local-data: `"$Domain. IN A $IPAddress`""
         $recordCommand = "echo '$dataText' >> $ConfigFile"

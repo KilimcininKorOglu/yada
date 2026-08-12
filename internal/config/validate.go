@@ -68,7 +68,8 @@ func validateServer(where string, srv Server) []error {
 		problems = append(problems, fmt.Errorf("%s: user %q geçersiz karakter içeriyor", where, srv.User))
 	}
 
-	if srv.Port < 1 || srv.Port > 65535 {
+	// Zero means the port was not set, and ssh resolves it itself.
+	if srv.Port != 0 && (srv.Port < 1 || srv.Port > 65535) {
 		problems = append(problems, fmt.Errorf("%s: port %d aralık dışında (1-65535)", where, srv.Port))
 	}
 

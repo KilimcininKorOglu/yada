@@ -23,8 +23,9 @@ func TestDecodeAppliesDefaults(t *testing.T) {
 
 	srv := cfg.Servers[0]
 
-	if srv.Port != 22 {
-		t.Errorf("port = %d, beklenen 22", srv.Port)
+	// An unset port must stay zero so ssh can apply ~/.ssh/config itself.
+	if srv.Port != 0 {
+		t.Errorf("port = %d, belirtilmediğinde 0 kalmalı", srv.Port)
 	}
 	if srv.RecordsFile != "/etc/unbound/local_records.conf" {
 		t.Errorf("records_file = %q", srv.RecordsFile)
@@ -80,6 +81,23 @@ defaults:
 	}
 	if got := cfg.Servers[1].User; got != "yonetici" {
 		t.Errorf("ikinci sunucu user = %q, kendi değeri korunmalıydı", got)
+	}
+}
+
+func TestValidateRejectsOutOfRangePort(t *testing.T) {
+	const input = `
+servers:
+  - host: 192.0.2.4
+    user: user01
+    port: 70000
+`
+
+	_, err := Decode([]byte(input))
+	if err == nil {
+		t.Fatal("aralık dışı port kabul edildi")
+	}
+	if !strings.Contains(err.Error(), "aralık dışında") {
+		t.Errorf("beklenen port hatası yok: %v", err)
 	}
 }
 

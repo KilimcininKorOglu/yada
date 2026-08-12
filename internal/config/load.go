@@ -80,7 +80,9 @@ func Default() Config {
 
 	return Config{
 		Defaults: Defaults{
-			Port:        22,
+			// Port stays zero on purpose: an unset port lets ssh apply its own
+			// resolution, including a Port directive from ~/.ssh/config.
+			// Forcing 22 here would override the user's own configuration.
 			RecordsFile: "/etc/unbound/local_records.conf",
 			MainConfig:  "/etc/unbound/unbound.conf",
 			Sudo:        &sudo,

@@ -25,6 +25,9 @@ func (c Config) Validate() error {
 		problems = append(problems, errors.New("en az bir sunucu tanımlanmalı (servers listesi boş)"))
 	}
 
+	// A server is identified by host and port together. The same host on two
+	// ports is a different machine whenever ssh forwarding or containers are
+	// involved, so keying on the host alone would reject a valid setup.
 	seen := make(map[string]int, len(c.Servers))
 
 	for i, srv := range c.Servers {
@@ -35,12 +38,17 @@ func (c Config) Validate() error {
 
 		problems = append(problems, validateServer(where, srv)...)
 
-		if srv.Host != "" {
-			if first, dup := seen[srv.Host]; dup {
-				problems = append(problems, fmt.Errorf("%s: host %q zaten servers[%d] içinde tanımlı", where, srv.Host, first))
-			} else {
-				seen[srv.Host] = i
-			}
+		if srv.Host == "" {
+			continue
+		}
+
+		key := fmt.Sprintf("%s:%d", srv.Host, srv.effectivePort(c.Defaults.Port))
+
+		if first, dup := seen[key]; dup {
+			problems = append(problems, fmt.Errorf(
+				"%s: %s zaten servers[%d] içinde tanımlı", where, describeTarget(srv, c.Defaults.Port), first))
+		} else {
+			seen[key] = i
 		}
 	}
 
@@ -49,6 +57,24 @@ func (c Config) Validate() error {
 	problems = append(problems, validateLog(c.Log)...)
 
 	return errors.Join(problems...)
+}
+
+// effectivePort resolves the port a server will actually use. Zero means ssh
+// picks it, which for duplicate detection is one more distinct value.
+func (s Server) effectivePort(defaultPort int) int {
+	if s.Port != 0 {
+		return s.Port
+	}
+
+	return defaultPort
+}
+
+func describeTarget(srv Server, defaultPort int) string {
+	if port := srv.effectivePort(defaultPort); port != 0 {
+		return fmt.Sprintf("host %q ve port %d", srv.Host, port)
+	}
+
+	return fmt.Sprintf("host %q", srv.Host)
 }
 
 func validateServer(where string, srv Server) []error {

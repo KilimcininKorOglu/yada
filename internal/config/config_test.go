@@ -250,6 +250,51 @@ servers:
 	}
 }
 
+// The same host on different ports is a different machine whenever ssh
+// forwarding or containers are in play, so it must not be rejected.
+func TestValidateAcceptsSameHostOnDifferentPorts(t *testing.T) {
+	const input = `
+servers:
+  - name: ns1
+    host: 127.0.0.1
+    port: 8340
+  - name: ns2
+    host: 127.0.0.1
+    port: 8342
+
+defaults:
+  user: user01
+`
+
+	if _, err := Decode([]byte(input)); err != nil {
+		t.Fatalf("farklı portlardaki aynı host reddedildi: %v", err)
+	}
+}
+
+// Two servers that resolve to the same port through defaults are still the
+// same target, even though neither names a port itself.
+func TestValidateRejectsDuplicateThroughDefaultPort(t *testing.T) {
+	const input = `
+servers:
+  - name: ns1
+    host: 127.0.0.1
+  - name: ns2
+    host: 127.0.0.1
+
+defaults:
+  user: user01
+  port: 2222
+`
+
+	_, err := Decode([]byte(input))
+	if err == nil {
+		t.Fatal("varsayılan port üzerinden çakışan iki sunucu kabul edildi")
+	}
+	if !strings.Contains(err.Error(), "2222") {
+		t.Errorf("hata mesajı çakışan portu göstermiyor: %v", err)
+	}
+}
+
 func TestValidateRejectsEmptyServerList(t *testing.T) {
 	_, err := Decode([]byte("servers: []\n"))
 	if err == nil {

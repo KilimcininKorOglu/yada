@@ -56,7 +56,7 @@ jobs:
         run: go test -count=1 -race -tags nogui ./...
 
   lint:
-    name: Lint
+    name: Lint and interface tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -80,6 +80,13 @@ jobs:
 
       - name: Lint the nogui build
         run: golangci-lint run --timeout 5m --build-tags nogui ./...
+
+      # The interface package is excluded from the nogui test run, so this is
+      # the only place its tests execute. They use the Fyne test app and need
+      # no display. It runs here because this job already has the cgo build
+      # dependencies installed.
+      - name: Test the interface package
+        run: go test -count=1 ./internal/ui/
 
   vuln:
     name: Vulnerabilities
@@ -111,39 +118,6 @@ jobs:
       # user downloads come from release.yml.
       - name: Cross-compile
         run: make cross-cli
-
-  # The full binary links Fyne, so it cannot be cross-compiled and has to be
-  # built on each target.
-  build-gui:
-    name: Build with the interface
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-go@v7
-        with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Install the GUI build dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libgl1-mesa-dev xorg-dev \
-            libwayland-dev wayland-protocols libxkbcommon-dev libdecor-0-dev
-
-      - name: Build
-        run: go build -trimpath -o dist/ ./cmd/yada
-
-      # The interface package is excluded from the nogui test run, so this is
-      # the only place its tests execute. They use the Fyne test app and need
-      # no display.
-      - name: Test the interface package
-        run: go test -count=1 ./internal/ui/
 
   # The only job that proves the tool does anything to a running resolver.
   integration:

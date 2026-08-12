@@ -4,10 +4,10 @@
 param(
     [Parameter(Mandatory=$false)]
     [string[]]$UnboundServers = @("192.0.2.4", "192.0.2.5"), # Unbound sunucu IP'lerini buraya girin
-    
+
     [Parameter(Mandatory=$false)]
     [string]$Username = "user01",
-    
+
     [Parameter(Mandatory=$false)]
     [string]$ConfigFile = "/etc/unbound/local_records.conf"
 )
@@ -20,12 +20,12 @@ $Cyan = "Cyan"
 
 function Write-ColorOutput {
     param($Message, $Color = "White")
-    
+
     # Null kontrolü
     if ([string]::IsNullOrEmpty($Color)) {
         $Color = "White"
     }
-    
+
     try {
         Write-Host $Message -ForegroundColor $Color
     }
@@ -47,24 +47,24 @@ function Test-SSHConnection {
 
 function Add-UnboundRecord {
     param($Server, $Username, $Domain, $IPAddress, $ConfigFile)
-    
+
     try {
         Write-ColorOutput "[$Server] Kayıt ekleniyor: $Domain -> $IPAddress" $Cyan
-        
+
         # Zone'u transparent olarak ayarla (eğer yoksa)
         $rootDomain = ($Domain -split '\.' | Select-Object -Skip 1) -join '.'
         if ($rootDomain) {
-            $searchText = "local-zone: \⁠ "$rootDomain.\ ⁠" transparent"
-            $addText = "         local-zone: \⁠ "$rootDomain.\ ⁠" transparent"
-            $zoneCommand = "grep -q '$searchText' $ConfigFile || echo '$addText' >> $ConfigFile"
+            $searchText = "local-zone: `"$rootDomain.`" transparent"
+            $addText = "         local-zone: `"$rootDomain.`" transparent"
+            $zoneCommand = "grep -qF '$searchText' $ConfigFile || echo '$addText' >> $ConfigFile"
             ssh "$Username@$Server" $zoneCommand
         }
-        
+
         # A kaydını ekle (9 space ile)
-        $dataText = "         local-data: \⁠ "$Domain. IN A $IPAddress\ ⁠""
+        $dataText = "         local-data: `"$Domain. IN A $IPAddress`""
         $recordCommand = "echo '$dataText' >> $ConfigFile"
         ssh "$Username@$Server" $recordCommand
-        
+
         Write-ColorOutput "[$Server] Kayıt başarıyla eklendi" $Green
         return $true
     }
@@ -76,28 +76,28 @@ function Add-UnboundRecord {
 
 function Restart-UnboundService {
     param($Server, $Username)
-    
+
     try {
         Write-ColorOutput "[$Server] Unbound servisi yeniden başlatılıyor..." $Yellow
         ssh "$Username@$Server" "sudo systemctl restart unbound"
-        
+
         # Servis durumunu kontrol et (2 saniyede bir, maksimum 30 saniye)
         $maxAttempts = 15
         $attempt = 0
-        
+
         do {
             Start-Sleep 2
             $attempt++
             Write-ColorOutput "[$Server] Servis durumu kontrol ediliyor... (Deneme: $attempt)" $Cyan
-            
+
             $serviceStatus = ssh "$Username@$Server" "sudo systemctl is-active unbound" 2>$null
-            
+
             if ($serviceStatus -eq "active") {
                 Write-ColorOutput "[$Server] ✅ Unbound servisi başarıyla yeniden başlatıldı!" $Green
                 return $true
             }
         } while ($attempt -lt $maxAttempts)
-        
+
         Write-ColorOutput "[$Server] ❌ Servis başlatılamadı veya zaman aşımı" $Red
         return $false
     }
@@ -154,7 +154,7 @@ do {
     Write-Host "`n" + ("=" * 60) -ForegroundColor $Cyan
     Write-ColorOutput "YENİ DNS KAYDI EKLEME" $Cyan
     Write-Host ("=" * 60) -ForegroundColor $Cyan
-    
+
     # Domain adı al
     do {
         $domain = Read-Host "`nDomain adını girin (örn: mail.google.com)"
@@ -166,7 +166,7 @@ do {
             $domain = ""
         }
     } while ([string]::IsNullOrWhiteSpace($domain))
-    
+
     # IP adresi al
     do {
         $ipAddress = Read-Host "IP adresini girin (örn: 10.10.10.10)"
@@ -178,7 +178,7 @@ do {
             $ipAddress = ""
         }
     } while ([string]::IsNullOrWhiteSpace($ipAddress))
-    
+
     # Özet göster
     Write-Host "`n" + ("-" * 50) -ForegroundColor $Yellow
     Write-ColorOutput "KAYIT ÖZETİ:" $Yellow
@@ -186,12 +186,12 @@ do {
     Write-ColorOutput "IP: $ipAddress" $White
     Write-ColorOutput "Hedef sunucular: $($validServers -join ', ')" $White
     Write-Host ("-" * 50) -ForegroundColor $Yellow
-    
+
     $confirm = Read-Host "`nBu kayıtları eklemek istediğinizden emin misiniz? (E/H)"
-    
+
     if ($confirm -eq "E" -or $confirm -eq "e") {
         $allSuccessful = $true
-        
+
         # Tüm sunuculara kayıt ekle
         foreach ($server in $validServers) {
             $success = Add-UnboundRecord -Server $server -Username $Username -Domain $domain -IPAddress $ipAddress -ConfigFile $ConfigFile
@@ -199,7 +199,7 @@ do {
                 $allSuccessful = $false
             }
         }
-        
+
         if ($allSuccessful) {
             Write-ColorOutput "`n✅ Tüm sunuculara kayıtlar başarıyla eklendi!" $Green
             $needsRestart = $true  # Yeniden başlatma gerektiğini işaretle
@@ -211,32 +211,32 @@ do {
     else {
         Write-ColorOutput "İşlem iptal edildi." $Yellow
     }
-    
+
     # Devam etme onayı
     Write-Host "`n" + ("=" * 60) -ForegroundColor $Cyan
     $continue = Read-Host "Başka bir kayıt eklemek istiyor musunuz? (E/H)"
-    
+
 } while ($continue -eq "E" -or $continue -eq "e")
 
 # Eğer kayıt eklendiyse ve kullanıcı başka kayıt eklemek istemiyorsa, yeniden başlatma sor
 if ($needsRestart -and ($continue -eq "H" -or $continue -eq "h")) {
     Write-Host "`n" + ("=" * 60) -ForegroundColor $Cyan
     $finalRestartConfirm = Read-Host "Unbound servislerini yeniden başlatmak istiyor musunuz? (E/H)"
-    
+
     if ($finalRestartConfirm -eq "E" -or $finalRestartConfirm -eq "e") {
         Write-ColorOutput "`n🔄 Servisler yeniden başlatılıyor..." $Yellow
-        
+
         $restartResults = @()
         foreach ($server in $validServers) {
             $result = Restart-UnboundService -Server $server -Username $Username
             $restartResults += @{Server = $server; Success = $result}
         }
-        
+
         # Sonuçları özetle
         Write-Host "`n" + ("=" * 60) -ForegroundColor $Cyan
         Write-ColorOutput "YENİDEN BAŞLATMA SONUÇLARI:" $Cyan
         Write-Host ("=" * 60) -ForegroundColor $Cyan
-        
+
         foreach ($result in $restartResults) {
             if ($result.Success) {
                 Write-ColorOutput "[$($result.Server)] ✅ Başarılı" $Green

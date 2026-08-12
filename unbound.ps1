@@ -1,4 +1,4 @@
-# Unbound DNS Kayıt Yönetim Scripti
+﻿# Unbound DNS Kayıt Yönetim Scripti
 # Bu script Windows istemcilerden Unbound DNS sunucularına kayıt eklemeyi otomatize eder
 
 param(

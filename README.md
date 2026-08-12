@@ -140,6 +140,22 @@ Genel bayraklar: `--config`, `--server` (tekrarlanabilir), `--json`, `--dry-run`
 
 `--dry-run` hiçbir şey yazmaz, yalnızca oluşacak farkı gösterir.
 
+### Ad zaten kullanımdaysa
+
+`add` yazmadan önce sunucuları okur ve girdiğiniz adın ne durumda olduğuna bakar:
+
+| Durum | Davranış |
+|---|---|
+| Ad hiçbir sunucuda yok | Kaydedilir. Aynı adresin başka bir adda kullanılıyor olması engel değildir. |
+| Ad var, değer birebir aynı | Yazma yapılmaz, durum bildirilir ve 0 ile çıkılır. |
+| Ad var, değer farklı | Hangi sunucuda ne olduğu listelenir ve değiştirilmesi için onay istenir. |
+
+Onay istendiğinde `--yes` sormadan devam eder, `--dry-run` sormadan yalnızca farkı gösterir. Terminal yoksa (script veya CI) komut yazmadan durur ve `--yes` ister, böylece bir otomasyon var olan kaydı kazara ezmez.
+
+Onay verildiğinde tek karar bütün sunuculara uygulanır: kayıt eksik olan sunucuya eklenir, farklı olan sunucuda değiştirilir, zaten doğru olan sunucuda dokunulmaz.
+
+Masaüstü arayüzü aynı denetimi yapar. Değer farklıysa "Düzenle" ve "Vazgeç" seçenekleri çıkar; "Düzenle" güncelleme penceresini açar, böylece son hâli yazılmadan önce görürsünüz.
+
 ### CSV biçimi
 
 Başlık satırı zorunludur, sütun sırası serbesttir:

@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kerem/yada/internal/config"
+	"github.com/KilimcininKorOglu/yada/internal/config"
 )
 
 // Result carries everything a remote command produced.

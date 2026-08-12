@@ -14,9 +14,9 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/kerem/yada/internal/config"
-	"github.com/kerem/yada/internal/records"
-	"github.com/kerem/yada/internal/unbound"
+	"github.com/KilimcininKorOglu/yada/internal/config"
+	"github.com/KilimcininKorOglu/yada/internal/records"
+	"github.com/KilimcininKorOglu/yada/internal/unbound"
 )
 
 // recordRow is a record together with the servers that hold it.

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/kerem/yada/internal/transport"
-	"github.com/kerem/yada/internal/unbound"
+	"github.com/KilimcininKorOglu/yada/internal/transport"
+	"github.com/KilimcininKorOglu/yada/internal/unbound"
 	"github.com/spf13/cobra"
 )
 

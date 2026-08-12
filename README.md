@@ -14,9 +14,20 @@ Bir veya birden fazla Unbound sunucusunda `local-zone` ve `local-data` kayıtlar
 
 ## Kurulum
 
-Hazır binary yoksa kaynaktan derleyin. `go.mod` Go 1.26.5 ister.
+Hazır binary'ler [Releases](https://github.com/KilimcininKorOglu/yada/releases) sayfasındadır. Yalnızca komut satırını isteyen bir sunucuya `yada-cli-<platform>` yeter; statiktir ve bağımlılık aramaz. `SHA256SUMS` dosyası aynı sayfadadır.
+
+Komut satırı yapısı doğrudan Go ile de kurulur:
 
 ```bash
+go install github.com/KilimcininKorOglu/yada/cmd/yada@latest
+```
+
+Kaynaktan derlemek için depoyu klonlayın. `go.mod` Go 1.26.5 ister.
+
+```bash
+git clone https://github.com/KilimcininKorOglu/yada.git
+cd yada
+
 make build            # yada (arayüz + CLI, cgo gerekir)
 make build-cli        # yada-cli (yalnızca CLI, statik)
 make cross-cli        # beş platform için statik CLI

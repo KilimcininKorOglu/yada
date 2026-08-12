@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kerem/yada/internal/transport"
+	"github.com/KilimcininKorOglu/yada/internal/transport"
 )
 
 const sampleRecords = `# Yerel kayıtlar

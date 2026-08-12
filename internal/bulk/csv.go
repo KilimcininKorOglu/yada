@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kerem/yada/internal/records"
+	"github.com/KilimcininKorOglu/yada/internal/records"
 )
 
 // Columns are matched by header name, so the order in the file is free.

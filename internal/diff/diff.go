@@ -4,7 +4,7 @@ package diff
 import (
 	"sort"
 
-	"github.com/kerem/yada/internal/records"
+	"github.com/KilimcininKorOglu/yada/internal/records"
 )
 
 // Status classifies one record across the compared servers.

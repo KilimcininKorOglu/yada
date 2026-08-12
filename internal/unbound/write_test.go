@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kerem/yada/internal/records"
-	"github.com/kerem/yada/internal/transport"
+	"github.com/KilimcininKorOglu/yada/internal/records"
+	"github.com/KilimcininKorOglu/yada/internal/transport"
 )
 
 const baseRecords = `# Yerel kayıtlar

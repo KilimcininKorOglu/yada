@@ -7,7 +7,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/kerem/yada"
+	"github.com/KilimcininKorOglu/yada"
 )
 
 // FileName is the fixed name looked up next to the executable and in the home

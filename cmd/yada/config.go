@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kerem/yada/internal/config"
+	"github.com/KilimcininKorOglu/yada/internal/config"
 	"github.com/spf13/cobra"
 )
 

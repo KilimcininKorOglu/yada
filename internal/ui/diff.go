@@ -12,10 +12,10 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/kerem/yada/internal/config"
-	"github.com/kerem/yada/internal/diff"
-	"github.com/kerem/yada/internal/records"
-	"github.com/kerem/yada/internal/unbound"
+	"github.com/KilimcininKorOglu/yada/internal/config"
+	"github.com/KilimcininKorOglu/yada/internal/diff"
+	"github.com/KilimcininKorOglu/yada/internal/records"
+	"github.com/KilimcininKorOglu/yada/internal/unbound"
 )
 
 func (a *App) buildDiffTab() fyne.CanvasObject {

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kerem/yada/internal/ui"
+	"github.com/KilimcininKorOglu/yada/internal/ui"
 )
 
 // runGUI opens the desktop window and blocks until it closes.

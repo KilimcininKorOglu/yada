@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kerem/yada/internal/config"
+	"github.com/KilimcininKorOglu/yada/internal/config"
 )
 
 func TestBuildArgsPutsCommandLast(t *testing.T) {
@@ -55,7 +55,7 @@ func TestBuildArgsIncludesOptionsAndTimeout(t *testing.T) {
 	r := NewSSHRunner(config.SSH{
 		Options:        []string{"BatchMode=yes", "StrictHostKeyChecking=accept-new"},
 		ConnectTimeout: config.Duration(7 * time.Second),
-		ConfigFile:     "/home/kerem/.ssh/special",
+		ConfigFile:     "/home/operator/.ssh/special",
 	})
 
 	args := r.buildArgs(config.Server{Host: "h", User: "u"}, "true")
@@ -69,7 +69,7 @@ func TestBuildArgsIncludesOptionsAndTimeout(t *testing.T) {
 	if !containsPair(args, "-o", "ConnectTimeout=7") {
 		t.Errorf("ConnectTimeout eklenmedi: %v", args)
 	}
-	if !containsPair(args, "-F", "/home/kerem/.ssh/special") {
+	if !containsPair(args, "-F", "/home/operator/.ssh/special") {
 		t.Errorf("config_file eklenmedi: %v", args)
 	}
 }

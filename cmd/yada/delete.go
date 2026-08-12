@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kerem/yada/internal/config"
-	"github.com/kerem/yada/internal/records"
-	"github.com/kerem/yada/internal/transport"
-	"github.com/kerem/yada/internal/unbound"
+	"github.com/KilimcininKorOglu/yada/internal/config"
+	"github.com/KilimcininKorOglu/yada/internal/records"
+	"github.com/KilimcininKorOglu/yada/internal/transport"
+	"github.com/KilimcininKorOglu/yada/internal/unbound"
 	"github.com/spf13/cobra"
 )
 

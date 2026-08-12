@@ -15,7 +15,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/kerem/yada/internal/config"
+	"github.com/KilimcininKorOglu/yada/internal/config"
 )
 
 // configFileMode keeps the file readable only by its owner, because it names

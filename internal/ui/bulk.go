@@ -15,9 +15,9 @@ import (
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/kerem/yada/internal/bulk"
-	"github.com/kerem/yada/internal/records"
-	"github.com/kerem/yada/internal/unbound"
+	"github.com/KilimcininKorOglu/yada/internal/bulk"
+	"github.com/KilimcininKorOglu/yada/internal/records"
+	"github.com/KilimcininKorOglu/yada/internal/unbound"
 )
 
 func (a *App) buildBulkTab() fyne.CanvasObject {

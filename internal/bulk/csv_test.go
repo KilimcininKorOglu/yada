@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kerem/yada/internal/records"
+	"github.com/KilimcininKorOglu/yada/internal/records"
 )
 
 func TestImportReadsRows(t *testing.T) {

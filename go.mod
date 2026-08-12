@@ -1,4 +1,4 @@
-module github.com/kerem/yada
+module github.com/KilimcininKorOglu/yada
 
 go 1.26.5
 

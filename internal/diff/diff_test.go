@@ -3,7 +3,7 @@ package diff
 import (
 	"testing"
 
-	"github.com/kerem/yada/internal/records"
+	"github.com/KilimcininKorOglu/yada/internal/records"
 )
 
 func rec(t *testing.T, name string, typ records.Type, value string) records.Record {

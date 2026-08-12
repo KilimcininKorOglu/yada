@@ -16,8 +16,8 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/kerem/yada/internal/config"
-	"github.com/kerem/yada/internal/transport"
+	"github.com/KilimcininKorOglu/yada/internal/config"
+	"github.com/KilimcininKorOglu/yada/internal/transport"
 )
 
 // App holds everything the screens share.
@@ -44,7 +44,7 @@ type App struct {
 // the usual search order in place.
 func Run(version, configPath string) {
 	a := &App{
-		fyne:       app.NewWithID("dev.kerem.yada"),
+		fyne:       app.NewWithID("io.github.kilimcininkoroglu.yada"),
 		configPath: configPath,
 	}
 

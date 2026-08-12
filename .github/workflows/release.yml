@@ -96,11 +96,28 @@ jobs:
         working-directory: artifacts
         run: sha256sum * > SHA256SUMS
 
-      # Written as a file rather than inlined, so the backticks and newlines
-      # never pass through a shell.
+      # The body is the CHANGELOG section for this tag, followed by a fixed
+      # description of the files. Written as a file rather than inlined, so the
+      # backticks and newlines never pass through a shell.
       - name: Write the release notes
         run: |
-          cat > notes.md <<'MARKDOWN'
+          version="${{ inputs.version || github.ref_name }}"
+
+          # CHANGELOG headings carry no v prefix, unlike the tag.
+          awk -v v="${version#v}" \
+            '$0 ~ "^## \\["v"\\]" {f=1; next} f && /^## \[/ {exit} f {print}' \
+            CHANGELOG.md > changes.md || true
+
+          if [ -s changes.md ]; then
+            cat changes.md > notes.md
+            printf '\n---\n\n' >> notes.md
+          else
+            # A missing section must not silently ship an empty body.
+            echo "UYARI: CHANGELOG.md içinde ${version#v} bölümü bulunamadı." >&2
+            : > notes.md
+          fi
+
+          cat >> notes.md <<'MARKDOWN'
           `yada-<os>-<arch>` dosyaları statik komut satırı yapılarıdır.
           Çalışma zamanı bağımlılığı yoktur ve arayüz içermezler.
 

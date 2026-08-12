@@ -58,7 +58,15 @@ func (a *App) buildServersTab() fyne.CanvasObject {
 	summary := widget.NewLabel("Durum için «Tümünü test et» düğmesine basın.")
 	summary.Wrapping = fyne.TextWrapWord
 
-	refresh := widget.NewButton("Tümünü test et", func() {
+	// Declared before the buttons so each of them can ask for a fresh test
+	// after it changes something.
+	var refresh *widget.Button
+
+	addServer := widget.NewButton("Sunucu ekle", func() {
+		a.showAddServerDialog(func() { refresh.OnTapped() })
+	})
+
+	refresh = widget.NewButton("Tümünü test et", func() {
 		if !a.configured() {
 			return
 		}
@@ -116,7 +124,7 @@ func (a *App) buildServersTab() fyne.CanvasObject {
 		}, nil)
 	})
 
-	toolbar := container.NewHBox(refresh, reloadAll)
+	toolbar := container.NewHBox(addServer, refresh, reloadAll)
 
 	return container.NewBorder(
 		container.NewVBox(toolbar, widget.NewSeparator()),

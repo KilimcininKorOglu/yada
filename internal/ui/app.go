@@ -111,16 +111,24 @@ func (a *App) transportRunner() transport.Runner {
 	return a.runner
 }
 
-// configured reports whether a usable configuration is loaded, and tells the
-// user where to fix it when not.
+// configured reports whether a usable configuration is loaded, and offers the
+// way out when not.
+//
+// On a machine that has never run this application there is no configuration
+// at all, so the answer is to add the first server rather than to send the
+// user to an empty file.
 func (a *App) configured() bool {
 	if len(a.config().Servers) > 0 {
 		return true
 	}
 
-	dialog.ShowInformation("Ayar yok",
-		"Kullanılabilir bir ayar dosyası yüklenmedi.\nAyarlar sekmesinden dosyayı oluşturun.",
-		a.window)
+	dialog.ShowConfirm("Sunucu yok",
+		"Tanımlı sunucu yok.\n\nŞimdi bir sunucu ekleyelim mi?",
+		func(ok bool) {
+			if ok {
+				a.showAddServerDialog(nil)
+			}
+		}, a.window)
 
 	return false
 }

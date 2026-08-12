@@ -9,7 +9,12 @@ param(
     [string]$Username = "user01",
 
     [Parameter(Mandatory=$false)]
-    [string]$ConfigFile = "/etc/unbound/local_records.conf"
+    [string]$ConfigFile = "/etc/unbound/local_records.conf",
+
+    # unbound-checkconf bu dosyayı doğrular. local_records.conf tek başına
+    # doğrulanamaz, çünkü include ile server clause içine gömülür.
+    [Parameter(Mandatory=$false)]
+    [string]$MainConfigFile = "/etc/unbound/unbound.conf"
 )
 
 # Renk kodları
@@ -92,6 +97,30 @@ function Add-UnboundRecord {
     }
     catch {
         Write-ColorOutput "[$Server] Kayıt eklenirken hata: $($_.Exception.Message)" $Red
+        return $false
+    }
+}
+
+function Test-UnboundConfig {
+    param($Server, $Username, $MainConfigFile)
+
+    try {
+        Write-ColorOutput "[$Server] Config doğrulanıyor: $MainConfigFile" $Cyan
+        $output = ssh "$Username@$Server" "sudo unbound-checkconf $MainConfigFile 2>&1"
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-ColorOutput "[$Server] ❌ Config doğrulaması başarısız (çıkış kodu: $LASTEXITCODE)" $Red
+            foreach ($line in $output) {
+                Write-ColorOutput "[$Server]   $line" $Red
+            }
+            return $false
+        }
+
+        Write-ColorOutput "[$Server] ✅ Config geçerli" $Green
+        return $true
+    }
+    catch {
+        Write-ColorOutput "[$Server] Config doğrulanırken hata: $($_.Exception.Message)" $Red
         return $false
     }
 }
@@ -250,6 +279,13 @@ if ($needsRestart) {
 
         $restartResults = @()
         foreach ($server in $validServers) {
+            # Config bozuksa servisi yeniden başlatma, aksi halde unbound açılmaz
+            if (-not (Test-UnboundConfig -Server $server -Username $Username -MainConfigFile $MainConfigFile)) {
+                Write-ColorOutput "[$server] Config geçersiz, servis yeniden başlatılmadı" $Yellow
+                $restartResults += @{Server = $server; Success = $false}
+                continue
+            }
+
             $result = Restart-UnboundService -Server $server -Username $Username
             $restartResults += @{Server = $server; Success = $result}
         }

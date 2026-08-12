@@ -55,6 +55,11 @@ func (r Result) Err() error {
 // hint rather than a guarantee.
 const sshSelfFailureCode = 255
 
+// cancelGrace is how long a cancelled command may still write output before
+// its pipes are closed and the wait is abandoned. Long enough for ssh to
+// report why it stopped, short enough that a cancel stays a cancel.
+const cancelGrace = 2 * time.Second
+
 // LooksLikeConnectionFailure reports whether the failure most likely came from
 // ssh itself rather than from the remote command.
 func (r Result) LooksLikeConnectionFailure() bool {
@@ -107,6 +112,12 @@ func (r *SSHRunner) run(ctx context.Context, srv config.Server, cmd string, stdi
 	if stdin != nil {
 		c.Stdin = stdin
 	}
+
+	// Killing ssh does not on its own end the wait: output is collected through
+	// a pipe, and anything ssh left behind still holds the write end open, so
+	// Wait would block until that process exits too. WaitDelay gives up on the
+	// remaining output shortly after the kill instead of hanging the caller.
+	c.WaitDelay = cancelGrace
 
 	err := c.Run()
 

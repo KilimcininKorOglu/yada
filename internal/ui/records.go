@@ -4,6 +4,7 @@ package ui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -17,6 +18,23 @@ import (
 	"github.com/KilimcininKorOglu/yada/internal/config"
 	"github.com/KilimcininKorOglu/yada/internal/records"
 	"github.com/KilimcininKorOglu/yada/internal/unbound"
+)
+
+// writeMode says how a record reaches the servers, which the form and the
+// write both need to know.
+type writeMode int
+
+const (
+	// writeAdd is a new record: the name and type are still editable, and the
+	// servers are checked before anything is written.
+	writeAdd writeMode = iota
+
+	// writeUpdate changes a record the user picked from the table.
+	writeUpdate
+
+	// writeSet adds the record where it is missing and replaces it where it
+	// differs, which is how one decision reaches servers that disagree.
+	writeSet
 )
 
 // recordRow is a record together with the servers that hold it.
@@ -150,7 +168,7 @@ func (a *App) buildRecordsTab() fyne.CanvasObject {
 			return
 		}
 
-		a.showRecordDialog(records.Record{}, false, reload)
+		a.showRecordDialog(records.Record{}, writeAdd, reload)
 	})
 
 	editButton := widget.NewButton("Düzenle", func() {
@@ -159,7 +177,7 @@ func (a *App) buildRecordsTab() fyne.CanvasObject {
 			return
 		}
 
-		a.showRecordDialog(shown[selected].record, true, reload)
+		a.showRecordDialog(shown[selected].record, writeUpdate, reload)
 	})
 
 	deleteButton := widget.NewButton("Sil", func() {
@@ -230,7 +248,11 @@ func collectRecordRows(results []unbound.ServerRecords) []recordRow {
 
 // showRecordDialog builds the add and edit form. The value field is validated
 // per type as the user types, so a mistake surfaces before anything is sent.
-func (a *App) showRecordDialog(existing records.Record, editing bool, onDone func()) {
+func (a *App) showRecordDialog(existing records.Record, mode writeMode, onDone func()) {
+	// Only a new record may choose its name and type; changing either on an
+	// existing one would make it a different record.
+	editing := mode != writeAdd
+
 	nameEntry := widget.NewEntry()
 	nameEntry.SetPlaceHolder("mail.example.com")
 
@@ -319,27 +341,117 @@ func (a *App) showRecordDialog(existing records.Record, editing bool, onDone fun
 			return
 		}
 
-		a.writeRecord(rec, editing, onDone)
+		// A new record is checked against the servers first, so an existing
+		// name is reported rather than silently rejected by the write.
+		if mode == writeAdd {
+			a.startAdd(rec, onDone)
+			return
+		}
+
+		a.writeRecord(rec, mode, onDone)
 	}, a.window)
 
 	d.Resize(fyne.NewSize(520, 320))
 	d.Show()
 }
 
-// writeRecord adds or updates a record on every server, then refreshes the
-// ones that actually changed.
-func (a *App) writeRecord(rec records.Record, editing bool, onDone func()) {
+// startAdd reads the servers before writing, so the user learns that a name is
+// taken while it is still their decision what to do about it.
+//
+// The check and the write are two separate a.run calls rather than one: a.run
+// keeps a progress dialog up for as long as its work runs, so a question can
+// only be asked once that work has ended.
+func (a *App) startAdd(rec records.Record, onDone func()) {
+	var (
+		check   unbound.AddCheck
+		checked bool
+	)
+
+	a.run("Kayıt denetleniyor", func(ctx context.Context) error {
+		check = unbound.CheckAdd(ctx, a.transportRunner(), a.config(), rec)
+
+		for _, state := range check.States {
+			if state.Err != nil {
+				a.log.addf("[%s] okunamadı: %v", state.Server.Label(), state.Err)
+			}
+		}
+
+		if check.Readable == 0 {
+			return errors.New("hiçbir sunucu okunamadı")
+		}
+
+		checked = true
+
+		return nil
+	}, func() {
+		if !checked {
+			if onDone != nil {
+				onDone()
+			}
+
+			return
+		}
+
+		switch check.Outcome {
+		case unbound.AddDuplicate:
+			a.log.addf("%s kaydı zaten var, değişiklik yapılmadı.", rec.String())
+			dialog.ShowInformation("Kayıt zaten var",
+				"Bu kayıt sunucularda aynı değerle duruyor.\n\n"+check.Summary(), a.window)
+
+			if onDone != nil {
+				onDone()
+			}
+
+		case unbound.AddConflict:
+			a.confirmOverwrite(rec, check, onDone)
+
+		default:
+			a.writeRecord(rec, writeSet, onDone)
+		}
+	})
+}
+
+// confirmOverwrite offers the two ways out of a name that is already taken:
+// open the record for editing, or leave the servers alone.
+func (a *App) confirmOverwrite(rec records.Record, check unbound.AddCheck, onDone func()) {
+	message := fmt.Sprintf("%s için %s kaydı başka bir değerle duruyor.\n\n%s\n\nDüzenlerseniz kayıt %s "+
+		"değeriyle her sunucuda aynı hale getirilir.",
+		strings.TrimSuffix(rec.Name, "."), rec.Type, check.Summary(), rec.Value)
+
+	body := widget.NewLabel(message)
+	body.Wrapping = fyne.TextWrapWord
+
+	d := dialog.NewCustomConfirm("Kayıt zaten var", "Düzenle", "Vazgeç",
+		container.NewScroll(body), func(ok bool) {
+			if !ok {
+				a.log.addf("%s kaydı zaten var, işlem iptal edildi.", strings.TrimSuffix(rec.Name, "."))
+				return
+			}
+
+			a.showRecordDialog(rec, writeSet, onDone)
+		}, a.window)
+
+	d.Resize(fyne.NewSize(520, 320))
+	d.Show()
+}
+
+// writeRecord writes a record to every server, then refreshes the ones that
+// actually changed.
+func (a *App) writeRecord(rec records.Record, mode writeMode, onDone func()) {
 	cfg := a.config()
 
 	opts := unbound.WriteOptions{Backup: cfg.Behaviour.BackupBeforeWrite}
 
 	a.run("Kayıt yazılıyor", func(ctx context.Context) error {
 		results := unbound.Apply(ctx, a.transportRunner(), cfg, opts, func(f *records.File) error {
-			if editing {
+			switch mode {
+			case writeUpdate:
 				return f.Update(rec)
+			case writeSet:
+				return f.Set(rec)
+			default:
+				return f.Add(rec)
 			}
-
-			return f.Add(rec)
 		})
 
 		a.reportWrites(results)

@@ -25,6 +25,7 @@ type globalFlags struct {
 	configPath string
 	servers    []string
 	jsonOutput bool
+	dryRun     bool
 }
 
 var flags globalFlags
@@ -46,10 +47,13 @@ func newRootCommand() *cobra.Command {
 		"yalnızca bu sunuculara uygula (ad veya host, tekrarlanabilir)")
 	root.PersistentFlags().BoolVar(&flags.jsonOutput, "json", false,
 		"çıktıyı JSON olarak ver")
+	root.PersistentFlags().BoolVar(&flags.dryRun, "dry-run", false,
+		"değişiklik yapmadan yalnızca ne olacağını göster")
 
 	root.AddCommand(newCheckCommand())
 	root.AddCommand(newConfigCommand())
 	root.AddCommand(newListCommand())
+	root.AddCommand(newAddCommand())
 
 	return root
 }

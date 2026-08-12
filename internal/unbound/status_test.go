@@ -20,6 +20,7 @@ type fakeRunner struct {
 	fallback transport.Result
 	err      error
 	calls    []string
+	stdin    string
 }
 
 func (f *fakeRunner) Run(_ context.Context, _ config.Server, cmd string) (transport.Result, error) {
@@ -32,17 +33,47 @@ func (f *fakeRunner) Run(_ context.Context, _ config.Server, cmd string) (transp
 		return transport.Result{}, f.err
 	}
 
-	for needle, res := range f.replies {
-		if strings.Contains(cmd, needle) {
-			return res, nil
+	// Map iteration order is random, so pick the longest matching key instead.
+	// That makes a specific pattern win over a general one deterministically,
+	// which tests rely on when overriding a single command.
+	best := ""
+	found := false
+
+	for needle := range f.replies {
+		if strings.Contains(cmd, needle) && len(needle) > len(best) {
+			best = needle
+			found = true
 		}
+	}
+
+	if found {
+		return f.replies[best], nil
 	}
 
 	return f.fallback, nil
 }
 
-func (f *fakeRunner) RunWithStdin(ctx context.Context, srv config.Server, cmd string, _ io.Reader) (transport.Result, error) {
+func (f *fakeRunner) RunWithStdin(ctx context.Context, srv config.Server, cmd string, stdin io.Reader) (transport.Result, error) {
+	if stdin != nil {
+		data, err := io.ReadAll(stdin)
+		if err != nil {
+			return transport.Result{}, err
+		}
+
+		f.mu.Lock()
+		f.stdin = string(data)
+		f.mu.Unlock()
+	}
+
 	return f.Run(ctx, srv, cmd)
+}
+
+// receivedStdin returns what the last stdin-bearing command was fed.
+func (f *fakeRunner) receivedStdin() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	return f.stdin
 }
 
 func (f *fakeRunner) sawCommandContaining(needle string) bool {
@@ -68,6 +99,26 @@ func healthyRunner() *fakeRunner {
 			"unbound-control":     {Stdout: "version: 1.19.0\n"},
 			"CanReload":           {Stdout: "yes\n"},
 		},
+	}
+}
+
+func twoServerConfig() config.Config {
+	sudo := true
+
+	mk := func(name, host string) config.Server {
+		return config.Server{
+			Name:        name,
+			Host:        host,
+			User:        "user01",
+			RecordsFile: "/etc/unbound/local_records.conf",
+			MainConfig:  "/etc/unbound/unbound.conf",
+			Sudo:        &sudo,
+		}
+	}
+
+	return config.Config{
+		Servers:   []config.Server{mk("ns1", "10.0.0.1"), mk("ns2", "10.0.0.2")},
+		Behaviour: config.Behaviour{Parallel: false, MaxParallel: 2},
 	}
 }
 

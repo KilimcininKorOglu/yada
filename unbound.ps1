@@ -227,8 +227,8 @@ do {
 
 } while ($continue -eq "E" -or $continue -eq "e")
 
-# Eğer kayıt eklendiyse ve kullanıcı başka kayıt eklemek istemiyorsa, yeniden başlatma sor
-if ($needsRestart -and ($continue -eq "H" -or $continue -eq "h")) {
+# Eğer kayıt eklendiyse yeniden başlatmayı sor
+if ($needsRestart) {
     Write-Host "`n" + ("=" * 60) -ForegroundColor $Cyan
     $finalRestartConfirm = Read-Host "Unbound servislerini yeniden başlatmak istiyor musunuz? (E/H)"
 
